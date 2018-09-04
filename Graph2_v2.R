@@ -9,7 +9,7 @@ library(ggthemes)
 library(extrafont)
 library(plyr)
 library(scales)
-graph2 <- read.csv('Graph 2.csv',header=F)
+graph2 <- read.csv('Graph 2_v2.csv',header=F)
 colnames(graph2) <- c('years','percentage','dollar1','dollar2')
 graph2$years <- as.numeric(as.character(graph2$years))
 #select the years column - just selects the column which is named years.
