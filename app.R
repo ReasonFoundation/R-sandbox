@@ -12,6 +12,7 @@ library(ggplot2)
 library(RPostgres)
 library(tidyverse)
 library(dbplyr)
+library(DT)
 
 # The folliwing url is provided by Heroku
 url <- "postgres://viliygpvlizwel:5c26e3ddd0b2682b5c71a4230547677007d7f9fcfe1ed1c29ee45d6375a7475d@ec2-54-235-177-45.compute-1.amazonaws.com:5432/d47an5cjnv5mjb"
@@ -28,13 +29,16 @@ q1 <- "select plan.id,
     on plan.admin_gov_id = government.id 
   inner join state 
     on government.state_id = state.id 
+  where plan.id in (30, 31, 33, 89, 91, 1469, 1473, 1875, 1877, 1878, 1915)
   order by state.name"
 q2 <- "select plan_annual_attribute.year, 
   plan.id, 
   plan.display_name, 
   state.name as state, 
   plan_attribute.name as attribute_name, 
-  plan_annual_attribute.attribute_value 
+  plan_annual_attribute.attribute_value,
+data_source_id, 
+data_source.name as data_source_name
   from plan_annual_attribute 
   inner join plan 
     on plan_annual_attribute.plan_id = plan.id
@@ -44,7 +48,11 @@ q2 <- "select plan_annual_attribute.year,
     on government.state_id = state.id
   inner join plan_attribute 
     on plan_annual_attribute.plan_attribute_id = plan_attribute.id 
-  where plan_id = "
+inner join data_source 
+on plan_attribute.data_source_id = data_source.id
+  where cast(plan_annual_attribute.year as integer) >= 1980 and
+data_source_id <> 1 and
+  plan_id = "
 
 # create a connection from the url using the parsed pieces
 con <- dbConnect(RPostgres::Postgres(),
@@ -77,7 +85,8 @@ ui <- fluidPage(
         # select state to choose a plan from
         selectInput("state", "Select a state:", choices = levels(planList$state), selected = "Texas"),
         br(),
-        uiOutput("plan"),
+        uiOutput("plan"), 
+        htmlOutput("text"),
         
       # Built with Shiny by RStudio
         h5("Built with",
@@ -88,16 +97,18 @@ ui <- fluidPage(
          ),
       
       mainPanel(
-        tabsetPanel(type = "tabs",
-                    tabPanel("Plot #1",
-#                             plotlyOutput(outputId = "p"),
-                             br(),
-                             uiOutput("text")
-                    ),
-                    tabPanel("Data", tableOutput(outputId = "table"),
-                             br(),
-                             downloadButton("download_data", "Download data"))
-        )
+        tabsetPanel(
+          type = "tabs", 
+          tabPanel("Plot #1", 
+                   #plotlyOutput(outputId = "p"), 
+                   br()
+                   ),
+          tabPanel("Data", 
+                   fluidRow(column(12,DTOutput(outputId = "table"))), 
+                   br(), 
+                   downloadButton("download_data", "Download data")
+                   ) 
+          )
       )
     )
 )
@@ -109,10 +120,6 @@ server <- function(input, output) {
     planList %>% subset(state == input$state) %>% select(display_name)
   })
   
-  output$plan <- renderUI({
-    selectInput("plan", "Select a plan:", choices = plans())
-  })
-
   dataset <- reactive({
     con <- dbConnect(RPostgres::Postgres(),
                      dbname = trimws(pg$path),
@@ -122,26 +129,30 @@ server <- function(input, output) {
                      password = pg$password,
                      sslmode = "require"
     )
-    res2 <- dbSendQuery(con, paste0(q2, select(subset(planList,display_name == input$plan),id)$id," order by year, state, plan.display_name"))
+    res2 <- dbSendQuery(con, paste0(q2, planList$id[planList$display_name == input$plan]," order by year, state, plan.display_name"))
     subset_data <- dbFetch(res2)
     dbClearResult(res2)
     dbDisconnect(con)
-    subsetWide <- spread(select(subset_data, year, id, display_name, state, attribute_name, attribute_value),attribute_name, attribute_value)
-    return(subsetWide)
+    subset_data %>% 
+      select(year, id, display_name, state, attribute_name, attribute_value) %>% 
+      spread(attribute_name, attribute_value) 
+  })
+  
+  output$plan <- renderUI({
+    selectInput("plan", "Select a plan:", choices = plans())
   })
   
   output$text <- renderUI({
     HTML(paste0("The chosen state is: ",input$state,br(),"The chosen plan is: ", input$plan))
   })
   
-  output$table <- renderTable({
+  output$table <- renderDT({
     dataset()
   })
   
   output$download_data <- downloadHandler(
     filename = "data.csv",
     content = function(file) {
-      #code
       write.csv(dataset(), file)
     }
   )
