@@ -14,6 +14,7 @@ library(tidyverse)
 library(dbplyr)
 library(DT)
 library(plotly)
+library(scales)
 
 # The folliwing url is provided by Heroku
 url <- "postgres://viliygpvlizwel:5c26e3ddd0b2682b5c71a4230547677007d7f9fcfe1ed1c29ee45d6375a7475d@ec2-54-235-177-45.compute-1.amazonaws.com:5432/d47an5cjnv5mjb"
@@ -22,6 +23,9 @@ url <- "postgres://viliygpvlizwel:5c26e3ddd0b2682b5c71a4230547677007d7f9fcfe1ed1
 pg <- httr::parse_url(url)
 
 # predefine the queries we will need
+# The first query generates a list of plans with state, plan id, and name
+# currently limited to 11 plans for demo
+
 q1 <- "select plan.id, 
   display_name, 
   state.name as State 
@@ -32,6 +36,9 @@ q1 <- "select plan.id,
     on government.state_id = state.id 
   where plan.id in (30, 31, 33, 89, 91, 1469, 1473, 1875, 1877, 1878, 1915)
   order by state.name"
+
+# The 2nd query pulls the specific plan data
+
 q2 <- "select plan_annual_attribute.year, 
   plan.id, 
   plan.display_name, 
@@ -74,10 +81,12 @@ dbDisconnect(con)
 
 # ----------Begin shiny app portion -------------
 
-# Define UI for application that draws a histogram
+# Define UI for application
+
 ui <- fluidPage(
    # Application title
    titlePanel("Pension Plan Visualization"),
+   
    # Sidebar with a slider input for number of bins 
    sidebarLayout(
       sidebarPanel(
@@ -186,7 +195,9 @@ server <- function(input, output) {
   
   output$p <- renderPlotly({
     df <- selectedData()
+    
     #extrapolate data points to "smooth out" the area chart 
+    
     df$year <- as.numeric(as.character(df$year))
     df$fundedRatio <- df$fundedRatio*100
     extrapo <- approx(df$year, df$UAAL, n = 10000)
@@ -194,9 +205,12 @@ server <- function(input, output) {
     graph <- data.frame(year = extrapo$x, UAAL = extrapo$y, fundedRatio = extrapo2$y)
     
     #create a "negative-positive" column for fill aesthetic
+    
     graph$sign[graph$UAAL >= 0] = "positive"
     graph$sign[graph$UAAL < 0] = "negative"
     cols <- c("positive" = "#CC0000", "negative" = "#669900")
+    
+    # *****Note to fix, remove years with missing data*************
     
     p <- ggplot(graph, aes(x = year)) +
       geom_area(aes(y = UAAL, fill = sign), show.legend = FALSE) +
@@ -221,6 +235,9 @@ server <- function(input, output) {
         panel.background = element_blank(),
         legend.position = "none"
       ) +
+      
+      # *************Note to fix, use number of digits to select max of y sequence and by:*********************
+      
       scale_y_continuous(
         breaks = round(seq(min(graph$UAAL), max(graph$UAAL), by = 1000000), -3),
         labels = dollar_format(prefix = "$"),
@@ -244,6 +261,7 @@ server <- function(input, output) {
   })
   
   output$p2 <- renderPlot({
+    req(input$plan)
     df <- selectedData() %>% 
       select(year, `ADEC Contribution Rates`, `Actual Contribution Rates (Statutory)`) %>% 
       mutate_all(funs(as.numeric)) %>% 
