@@ -108,15 +108,10 @@ loadData <- function(filename){
   read_excel(filename, col_types = "numeric")
 }
 
-d <- loadData('data/NorthCarolina_PensionDatabase_TSERS.xlsx')
-
-
-# create a function to produce the mountain of debt graph
-modGraph <- function(wideData, 
-                     yearCol = 'year', 
-                     aalCol = 'Actuarial Accrued Liabilities Under GASB Standards',
-                     assetCol = 'Actuarial Assets under GASB standards'){
-  
+modData <- function(wideData,
+                    yearCol = 'year', 
+                    aalCol = 'Actuarial Accrued Liabilities Under GASB Standards',
+                    assetCol = 'Actuarial Assets under GASB standards'){
   library(tidyverse)
   subsetData <- wideData %>% 
     rename(actuarialAssets = assetCol, 
@@ -125,13 +120,22 @@ modGraph <- function(wideData,
     select(year, actuarialAssets, AAL) %>% 
     mutate(UAAL = as.numeric(AAL) - as.numeric(actuarialAssets), 
            fundedRatio = as.numeric(actuarialAssets) / as.numeric(AAL)) %>% 
-    drop_na()
+    drop_na()  
+  
   
   #extrapolate data points to "smooth out" the area chart 
   subsetData$year <- as.numeric(as.character(subsetData$year))
-  subsetData$fundedRatio <- subsetData$fundedRatio*100
-  extrapo <- approx(subsetData$year, subsetData$UAAL, n = 10000)
-  extrapo2 <- approx(subsetData$year, subsetData$fundedRatio, n = 10000)
+  subsetData
+}
+
+
+# create a function to produce the mountain of debt graph
+modGraph <- function(data){
+  
+  library(tidyverse)
+  
+  extrapo <- approx(data$year, data$UAAL, n = 10000)
+  extrapo2 <- approx(data$year, data$fundedRatio, n = 10000)
   graph <- data.frame(year = extrapo$x, UAAL = extrapo$y, fundedRatio = extrapo2$y)
   #create a "negative-positive" column for fill aesthetic
   graph$sign[graph$UAAL >= 0] = "positive"
@@ -164,6 +168,7 @@ modGraph <- function(wideData,
       labels = dollar_format(prefix = "$"),
       sec.axis = sec_axis(
         ~ . / (max(graph$UAAL) / 100),
+       # ~ . / (max(graph$UAAL)),
         breaks = pretty_breaks(n = 10),
         name = "Funded Ratio",
         labels = function(b) {
@@ -174,13 +179,27 @@ modGraph <- function(wideData,
     scale_x_continuous(breaks = round(seq(min(graph$year), max(graph$year), by = 2), 1)) +
     geom_hline(yintercept = 0, color = "black") +
     geom_line(aes(
-      y = fundedRatio * (max(graph$UAAL) / 100)),
+      #y = fundedRatio * (max(graph$UAAL) / 100)),
+      y = fundedRatio * (max(graph$UAAL))),
       color = '#3300FF',
       size = 1
     )
   p
 }
 
+modTable <- function(data){
+  library(DT)
+  library(tidyverse)
+  
+  data <- data %>%
+    rename('Year' = year,
+           'Actuarial Assets' = actuarialAssets, 
+           'Actuarial Accrued Liabilities' = AAL,
+           'Unfunded Actuarial Accrued Liabilities' = UAAL,
+           'Funded Ratio' = fundedRatio)
+  datatable(data, rownames = FALSE, options = list(pageLength = nrow(allWide), dom = 't')) %>% 
+    formatCurrency(c(2:4)) %>% formatPercentage(5,2)
+}
 
 
 
