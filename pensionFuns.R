@@ -33,11 +33,14 @@ planList <- function(){
   order by state.name"
   
   res <- dbSendQuery(con, q1)
-  pList <- dbFetch(res)
+  plans <- dbFetch(res) 
+  pList <- plans %>% mutate_if(sapply(plans, is.character), as.factor)
   dbClearResult(res)
   dbDisconnect(con)
   pList
 }
+
+planList()
 
 # Create a function to pull data for selected plan
 
@@ -83,7 +86,6 @@ pullData <- function(displayName = "Texas Employees Retirement System"){
   where cast(plan_annual_attribute.year as integer) >= 1980 and
   data_source_id <> 1 and
   plan_id = "
-  
   pl <- planList()
   planId <- pl$id[pl$display_name == displayName]
   q3 <- paste0(q2, planId, " order by year, data_source_id, plan_attribute_id")
@@ -143,7 +145,7 @@ modGraph <- function(data){
   
   p <- ggplot(graph, aes(x = year)) +
     geom_area(aes(y = UAAL, fill = sign), show.legend = FALSE) +
-    scale_fill_manual(values = c("#669900", "#CC0000")) +
+    scale_fill_manual(values = c("negative" = "#669900", "positive" = "#CC0000")) +
     geom_line(aes(y = UAAL)) +
     geom_line(aes(y = fundedRatio), color = '#3300FF', size = 1) +
     labs(y = 'Unfunded Accrued Actuarial Liabilities', x = NULL) +
