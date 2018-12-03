@@ -133,7 +133,7 @@ modData <- function(wideData,
 
 # create a function to produce the mountain of debt graph
 # for plan data reported in thousands of $, set base = 1000
-modGraph <- function(data, base = 1){
+modGraph <- function(data, base = 1000){
   
   library(tidyverse)
   library(ggthemes)
@@ -149,7 +149,7 @@ modGraph <- function(data, base = 1){
   graph$sign[graph$UAAL < 0] = "negative"
   
   p <- ggplot(graph, aes(x = year)) +
-    geom_area(aes(y = UAAL, fill = sign), show.legend = FALSE) +
+    geom_area(aes(y = UAAL, fill = sign)) +
     geom_line(aes(y = UAAL)) +
     geom_line(aes(y = fundedRatio * (max(graph$UAAL))), color = '#3300FF', size = 1) +
     
@@ -159,6 +159,7 @@ modGraph <- function(data, base = 1){
     scale_fill_manual(values = c("negative" = "#669900", "positive" = "#CC0000")) +
     
     theme(
+      legend.position = 'none',
      
       axis.text.x = element_text(
         face = "bold",

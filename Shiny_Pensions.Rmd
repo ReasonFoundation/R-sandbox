@@ -54,7 +54,7 @@ dataset <- eventReactive(input$go, {
     spread(attribute_name, attribute_value)
 })
 
-selectedData <- reactive({
+selectedData <- eventReactive(input$go, {
   dataset() %>%
     select(
       year,
@@ -126,7 +126,7 @@ renderPlot({
         axis.text.x = element_text(
           face = "bold",
           size = 14,
-          hjust = 1,
+          vjust = 0.5,
           angle = 90,
           color = "black"
         ),
