@@ -1,0 +1,158 @@
+---
+title: "Pensions Shiny"
+author: "A Abbott"
+date: "12/3/2018"
+runtime: shiny
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    source_code: embed
+---
+
+```{r setup, message = FALSE}
+library(tidyverse)
+library(highcharter)
+library(tidyquant)
+library(timetk)
+library(DT)
+source("pensionFuns.R")
+```
+
+Sidebar {.sidebar}
+======================================================
+
+```{r sidebar}
+planList <- planList()
+
+fluidRow(column(
+  10,
+  selectInput(
+    "state",
+    "Select a state:",
+    choices = levels(planList$state),
+    selected = "Texas"
+  )
+))
+fluidRow(column(10,
+                uiOutput("plan")))
+
+actionButton("go", "Submit")
+
+plans <- reactive({
+  planList %>% subset(state == input$state) %>% select(display_name)
+})
+
+dataset <- eventReactive(input$go, {
+  subset_data <- pullData(input$plan)
+  subset_data %>%
+    select(year,
+           id,
+           display_name,
+           state,
+           attribute_name,
+           attribute_value) %>%
+    spread(attribute_name, attribute_value)
+})
+
+selectedData <- reactive({
+  dataset() %>%
+    select(
+      year,
+      display_name,
+      `Actuarial Assets under GASB standards`,
+      `Actuarial Accrued Liabilities Under GASB Standards`,
+      `Employer Annual Required Contribution`,
+      `Employer Contributions`,
+      `Covered Payroll`
+    ) %>%
+    rename(
+      actuarialAssets = `Actuarial Assets under GASB standards`,
+      AAL = `Actuarial Accrued Liabilities Under GASB Standards`,
+      ADEC = `Employer Annual Required Contribution`,
+      empCont = `Employer Contributions`,
+      payroll = `Covered Payroll`
+    ) %>%
+    mutate(
+      UAAL = as.numeric(AAL) - as.numeric(actuarialAssets),
+      fundedRatio = as.numeric(actuarialAssets) / as.numeric(AAL),
+      `ADEC Contribution Rates` = 100 * as.numeric(ADEC) / as.numeric(payroll),
+      `Actual Contribution Rates (Statutory)` = 100 * as.numeric(empCont) /
+        as.numeric(payroll)
+    ) %>%
+    drop_na()
+})
+
+output$plan <- renderUI({
+  selectInput("plan",
+              "Select a plan:",
+              choices = plans(),
+              selected = "Texas Employees Retirement System")
+})
+   
+```
+
+Pensions
+===============================================
+
+
+Row {.tabset .tabset-fade}
+-----------------------------------------------
+
+
+### Mountain of Debt
+
+```{r histogram}
+renderPlot({
+  req(input$plan)
+  df <- selectedData()
+    p <- modGraph(df)
+    p
+})
+```
+
+### Employer Contribution
+
+```{r density}
+renderPlot({
+  req(input$plan)
+    df <- selectedData() %>% 
+      select(year, `ADEC Contribution Rates`, `Actual Contribution Rates (Statutory)`) %>% 
+      mutate_all(funs(as.numeric)) %>% 
+      gather(key = contribution, value = amount, -year)
+    p2 <- ggplot(df, aes(x = year)) +
+      geom_line(aes(y = amount, color = contribution)) +
+      theme(
+        axis.line = element_line(color = "black"),
+        axis.text.x = element_text(
+          face = "bold",
+          size = 14,
+          hjust = 1,
+          angle = 90,
+          color = "black"
+        ),
+        axis.title.x = element_blank(),
+        axis.title.y.left = element_text(face = 'bold', size = 14, color = "black"),
+        axis.text.y.left = element_text(face = "bold", size = 14, color = "black"),
+        panel.background = element_blank(),
+        legend.title = element_blank(),
+        legend.text = element_text(face = "bold", size = 14, color = "black"),
+        legend.position = c(0.3, 0.8)
+      ) +
+      labs(y = "Employer Contribution (% of Payroll)") +
+      scale_y_continuous(
+        breaks = round(seq(0, max(df$amount), by = 2), 1),
+        labels = percent_format(accuracy = 0.1, scale = 1)
+      ) +
+      scale_x_continuous(breaks = round(seq(min(df$year), max(df$year), by = 2), 1))
+    p2
+})
+```
+
+### Data
+
+```{r combined}
+ renderDT({
+    selectedData()
+ })
+
+```
