@@ -1,8 +1,4 @@
 library(tidyverse)
-library(ggthemes)
-library(extrafont)
-library(scales)
-library(DT)
 
 source("pensionFuns.R")
 
@@ -18,8 +14,7 @@ data <- modData(allWide,
                 aalCol = 'Actuarial Accrued Liability',
                 assetCol = 'Actuarial Value of Assets')
 
-modPlot <- modGraph(data)
-modPlot
+modGraph(data)
 
 modTable(data)
 

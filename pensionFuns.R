@@ -21,6 +21,7 @@ planList <- function(){
   )
   # define the query to retrieve the plan list
   # remove 'where plan.id ...' line to return all plans
+  #   where plan.id in (30,31,33,90,91,466,1469,1473,1875,1877,1878,1913,1915)
   q1 <- "select plan.id, 
   display_name, 
   state.name as State 
@@ -29,7 +30,6 @@ planList <- function(){
   on plan.admin_gov_id = government.id 
   inner join state 
   on government.state_id = state.id 
-  where plan.id in (30,31,33,90,91,466,1469,1473,1875,1877,1878,1913,1915)
   order by state.name"
   
   res <- dbSendQuery(con, q1)
@@ -132,60 +132,66 @@ modData <- function(wideData,
 
 
 # create a function to produce the mountain of debt graph
-modGraph <- function(data){
+# for plan data reported in thousands of $, set base = 1000
+modGraph <- function(data, base = 1){
   
   library(tidyverse)
+  library(ggthemes)
+  library(extrafont)
+  library(scales)
   
+  # extrapolate between years linearly
   extrapo <- approx(data$year, data$UAAL, n = 10000)
   extrapo2 <- approx(data$year, data$fundedRatio, n = 10000)
   graph <- data.frame(year = extrapo$x, UAAL = extrapo$y, fundedRatio = extrapo2$y)
-  #create a "negative-positive" column for fill aesthetic
+  # create a "negative-positive" column for fill aesthetic
   graph$sign[graph$UAAL >= 0] = "positive"
   graph$sign[graph$UAAL < 0] = "negative"
   
   p <- ggplot(graph, aes(x = year)) +
     geom_area(aes(y = UAAL, fill = sign), show.legend = FALSE) +
-    scale_fill_manual(values = c("negative" = "#669900", "positive" = "#CC0000")) +
     geom_line(aes(y = UAAL)) +
-    geom_line(aes(y = fundedRatio), color = '#3300FF', size = 1) +
-    labs(y = 'Unfunded Accrued Actuarial Liabilities', x = NULL) +
+    geom_line(aes(y = fundedRatio * (max(graph$UAAL))), color = '#3300FF', size = 1) +
+    
+    labs(y = 'Unfunded Accrued Actuarial Liabilities', 
+         x = NULL) +
+    
+    scale_fill_manual(values = c("negative" = "#669900", "positive" = "#CC0000")) +
+    
     theme(
-      axis.line.y = element_line(color = "black"),
+     
       axis.text.x = element_text(
         face = "bold",
         size = 14,
-        hjust = 1,
+        vjust = 0.5,
         angle = 90,
-        color = "black"
-      ),
+        color = "black"),
       axis.title.x = element_blank(),
+      axis.line.x = element_line(color = "black"),
+      
+      axis.line.y = element_line(color = "black"),
       axis.title.y.left = element_text(face = 'bold', size = 14, color = "black"),
       axis.text.y.left = element_text(face = "bold", size = 14, color = "black"),
+      
       axis.title.y.right = element_text(face = 'bold', size = 14, color = "black"),
       axis.text.y.right = element_text(face = "bold", size = 14, color = "black"),
+      
       panel.background = element_blank()
     ) +
+    
     scale_y_continuous(
       breaks = pretty_breaks(n = 10),
-      labels = dollar_format(prefix = "$"),
+      labels = dollar_format(prefix = "$", scale = (base * 1e-9), largest_with_cents = 1),
       sec.axis = sec_axis(
         ~ . / (max(graph$UAAL) / 100),
-       # ~ . / (max(graph$UAAL)),
         breaks = pretty_breaks(n = 10),
         name = "Funded Ratio",
-        labels = function(b) {
-          paste0(round(b, 0), "%")
-        }
-      )
+        labels = function(b) {paste0(round(b, 0), "%")}),
+      expand = c(0, 0)
     ) +
-    scale_x_continuous(breaks = round(seq(min(graph$year), max(graph$year), by = 2), 1)) +
-    geom_hline(yintercept = 0, color = "black") +
-    geom_line(aes(
-      #y = fundedRatio * (max(graph$UAAL) / 100)),
-      y = fundedRatio * (max(graph$UAAL))),
-      color = '#3300FF',
-      size = 1
-    )
+    
+    scale_x_continuous(breaks = round(seq(min(graph$year), max(graph$year), by = 2), 1),
+                       expand = c(0, 0))
   p
 }
 
