@@ -1,0 +1,145 @@
+---
+title: "Funding Model"
+author: "A Abbott"
+date: "12/3/2018"
+runtime: shiny
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    source_code: embed
+---
+
+```{r setup, message = FALSE}
+library(tidyverse)
+library(tidyquant)
+library(DT)
+library(lubridate)
+library(ggplot2)
+source("pensionFuns.R")
+```
+
+Sidebar {.sidebar}
+======================================================
+
+```{r sidebar}
+pl <- planList()
+
+fluidRow(column(
+  10,
+  selectInput(
+    "state",
+    "Select a state:",
+    choices = levels(pl$state),
+    selected = "Arkansas"
+  )
+))
+fluidRow(column(10,
+                uiOutput("plan")))
+fluidRow(
+  column(10,
+         numericInput("N", "Years to project", 35,
+                      min = 1, max = 100)))
+fluidRow(
+  column(10,
+         numericInput("pgr", "Payroll Growth Rate %", 2.75,
+                      min = 0, max = 10)))
+fluidRow(
+  column(10,
+         numericInput("currentDR", "Current Discount Rate %", 7.5,
+                      min = 3, max = 10)))
+fluidRow(
+  column(10,
+         numericInput("futureDR", "Future Discount Rate %", 7.5,
+                      min = 3, max = 10)))
+fluidRow(
+  column(10,
+         numericInput("existingGNC", "Existing Employee Gross Normal Cost Rate %", 11.75,
+                      min = 0, max = 20)))
+fluidRow(
+  column(10,
+         numericInput("rehiredGNC", "Rehired Employee Gross Normal Cost Rate %", 11.75,
+                      min = 0, max = 20)))
+fluidRow(
+  column(10,
+         numericInput("newGNC", "New Employee Gross Normal Cost Rate %", 11.75,
+                      min = 0, max = 20)))
+
+actionButton("go", "Submit")
+
+# Built with Shiny by RStudio
+h5(
+  "Built with",
+  img(src = "https://www.rstudio.com/wp-content/uploads/2014/04/shiny.png", height = "30px"),
+  "by",
+  img(src = "https://www.rstudio.com/wp-content/uploads/2014/07/RStudio-Logo-Blue-Gray.png", height = "30px"),
+  "."
+)
+
+plans <- reactive({
+  pl %>% subset(state == input$state) %>% select(display_name)
+})
+
+dataset <- eventReactive(input$go, {
+  subset <- pullData(input$plan)
+  subset_data <- spreadData(subset)
+})
+
+selectedData <- eventReactive(input$go, {
+  allData <- selected_Data(dataset())
+  initial <- last(allData) %>%
+    mutate_if(is.character, as.numeric) %>%
+    mutate(
+      rehiPayroll = 104073,
+      newPayroll = 0,
+      existingPayroll = payroll
+    ) %>%
+    mutate(payrollTotal = existingPayroll + rehiPayroll) %>%
+    mutate(
+      UAAL = AAL - actuarialAssets,
+      fundedRatio = actuarialAssets / AAL,
+      `ADEC Contribution Rates` = ADEC / payrollTotal,
+      `Actual Contribution Rates (Statutory)` = empCont / payrollTotal
+    )
+  date.min <- initial$valuationDate[1]
+  date.max <- date.min + years(input$N)
+  all.dates <- seq(date.min, date.max, by = "year")
+  new.df <- data.frame(list(valuationDate = all.dates))
+  merged.df <- merge(new.df, initial, all = T)
+  projection.df <- merged.df %>%
+    mutate(year = lag(year(valuationDate), default = first(year) - 1) + 1,
+           contributionFY = year + 2) %>%
+    mutate(
+      payrollTotal = payrollGrowth(., pgr = input$pgr),
+      payrollRehi = payrollGrowth(., y = "rehiPayroll", pgr = input$pgr),
+      payrollExisting = payrollExistingGrowth(.)
+    ) %>%
+    mutate(payrollNew = payrollTotal - payrollRehi - payrollExisting) %>%
+    select(-c(payroll, rehiPayroll, newPayroll, existingPayroll))
+  projection.df
+})
+
+output$plan <- renderUI({
+  selectInput("plan",
+              "Select a plan:",
+              choices = plans(),
+              selected = "Arkansas Teachers Retirement Plan")
+})
+   
+```
+
+Pension Funding Model
+===============================================
+
+
+Row {.tabset .tabset-fade}
+-----------------------------------------------
+
+
+### Data
+
+```{r combined}
+ renderDT({
+    dataTableFM(selectedData())
+ })
+
+```

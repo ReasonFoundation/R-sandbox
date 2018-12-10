@@ -11,9 +11,6 @@ output:
 
 ```{r setup, message = FALSE}
 library(tidyverse)
-library(highcharter)
-library(tidyquant)
-library(timetk)
 library(DT)
 source("pensionFuns.R")
 ```
@@ -38,48 +35,28 @@ fluidRow(column(10,
 
 actionButton("go", "Submit")
 
+# Built with Shiny by RStudio
+h5(
+  "Built with",
+  img(src = "https://www.rstudio.com/wp-content/uploads/2014/04/shiny.png", height = "30px"),
+  "by",
+  img(src = "https://www.rstudio.com/wp-content/uploads/2014/07/RStudio-Logo-Blue-Gray.png", height = "30px"),
+  "."
+)
+
 plans <- reactive({
-  planList %>% subset(state == input$state) %>% select(display_name)
+  planList %>% 
+    subset(state == input$state) %>% 
+    select(display_name)
 })
 
 dataset <- eventReactive(input$go, {
-  subset_data <- pullData(input$plan)
-  subset_data %>%
-    select(year,
-           id,
-           display_name,
-           state,
-           attribute_name,
-           attribute_value) %>%
-    spread(attribute_name, attribute_value)
+  subset <- pullData(input$plan)
+  subset_data <- spreadData(subset)
 })
 
 selectedData <- eventReactive(input$go, {
-  dataset() %>%
-    select(
-      year,
-      display_name,
-      `Actuarial Assets under GASB standards`,
-      `Actuarial Accrued Liabilities Under GASB Standards`,
-      `Employer Annual Required Contribution`,
-      `Employer Contributions`,
-      `Covered Payroll`
-    ) %>%
-    rename(
-      actuarialAssets = `Actuarial Assets under GASB standards`,
-      AAL = `Actuarial Accrued Liabilities Under GASB Standards`,
-      ADEC = `Employer Annual Required Contribution`,
-      empCont = `Employer Contributions`,
-      payroll = `Covered Payroll`
-    ) %>%
-    mutate(
-      UAAL = as.numeric(AAL) - as.numeric(actuarialAssets),
-      fundedRatio = as.numeric(actuarialAssets) / as.numeric(AAL),
-      `ADEC Contribution Rates` = 100 * as.numeric(ADEC) / as.numeric(payroll),
-      `Actual Contribution Rates (Statutory)` = 100 * as.numeric(empCont) /
-        as.numeric(payroll)
-    ) %>%
-    drop_na()
+  selected_Data(dataset())
 })
 
 output$plan <- renderUI({
@@ -101,12 +78,12 @@ Row {.tabset .tabset-fade}
 
 ### Mountain of Debt
 
-```{r histogram}
+```{r mod}
 renderPlot({
   req(input$plan)
   df <- selectedData()
-    p <- modGraph(df)
-    p
+  p <- modGraph(df)
+  p
 })
 ```
 
@@ -115,9 +92,9 @@ renderPlot({
 ```{r density}
 renderPlot({
   req(input$plan)
-    df <- selectedData() %>% 
-      select(year, `ADEC Contribution Rates`, `Actual Contribution Rates (Statutory)`) %>% 
-      mutate_all(funs(as.numeric)) %>% 
+    df <- selectedData() %>%
+      select(year, `ADEC Contribution Rates`, `Actual Contribution Rates (Statutory)`) %>%
+      mutate_all(funs(as.numeric)) %>%
       gather(key = contribution, value = amount, -year)
     p2 <- ggplot(df, aes(x = year)) +
       geom_line(aes(y = amount, color = contribution)) +
@@ -152,7 +129,7 @@ renderPlot({
 
 ```{r combined}
  renderDT({
-    selectedData()
+    modTable(selectedData())
  })
 
 ```
