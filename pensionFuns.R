@@ -1,7 +1,8 @@
-#This script contains functions used to load pension plan data either from Reason's database or
-#from an excel file.
-#Author: Andrew Abbott
-#Date: 12/11/2018
+# This script contains functions used to load pension plan data either from Reason's database or
+# from an excel file.
+# Author: Andrew Abbott
+# Date: 12/11/2018
+
 
 
 # This function grabs a list of the plans with their state from the Reason database.
@@ -12,11 +13,13 @@
 # example: where state.name in ('Texas', 'Arkansas')
 # example2: where plan.id in (30,31,33,90,91,466,1469,1473,1875,1877,1878,1913,1915)
 
+library(ggplot2)
+
 planList <- function() {
   library(RPostgres)
   library(httr)
   library(tidyverse)
-  
+
   # The folliwing url is provided by Heroku
   url <-
     "postgres://viliygpvlizwel:5c26e3ddd0b2682b5c71a4230547677007d7f9fcfe1ed1c29ee45d6375a7475d@ec2-54-235-177-45.compute-1.amazonaws.com:5432/d47an5cjnv5mjb"
@@ -24,13 +27,13 @@ planList <- function() {
   pg <- parse_url(url)
   # create a connection from the url using the parsed pieces
   con <- dbConnect(Postgres(),
-                   dbname = trimws(pg$path),
-                   host = pg$hostname,
-                   port = pg$port,
-                   user = pg$username,
-                   password = pg$password,
-                   sslmode = "require"
-                   )
+    dbname = trimws(pg$path),
+    host = pg$hostname,
+    port = pg$port,
+    user = pg$username,
+    password = pg$password,
+    sslmode = "require"
+  )
   # define the query to retrieve the plan list
   q1 <- "select plan.id,
   display_name,
@@ -41,12 +44,12 @@ planList <- function() {
   inner join state
   on government.state_id = state.id
   order by state.name"
-  
-  #sends the query to the connection
+
+  # sends the query to the connection
   res <- dbSendQuery(con, q1)
   # fetches the results
   plans <- dbFetch(res)
-  pList <- plans %>% 
+  pList <- plans %>%
     mutate_if(sapply(plans, is.character), as.factor)
   # clears the results
   dbClearResult(res)
@@ -65,7 +68,7 @@ pullData <-
     library(RPostgres)
     library(httr)
     library(tidyverse)
-    
+
     # The folliwing url is provided by Heroku
     url <-
       "postgres://viliygpvlizwel:5c26e3ddd0b2682b5c71a4230547677007d7f9fcfe1ed1c29ee45d6375a7475d@ec2-54-235-177-45.compute-1.amazonaws.com:5432/d47an5cjnv5mjb"
@@ -115,7 +118,7 @@ pullData <-
     allData <- dbFetch(res)
     dbClearResult(res)
     dbDisconnect(con)
-    
+
     allData
   }
 
@@ -127,7 +130,7 @@ pullData <-
 #     value = The name of the attribute value column, defaults to attribute_value
 # Usage: allWide <- spreadData(allData)
 
-spreadData <- function(data){
+spreadData <- function(data) {
   allWide <- data %>%
     select(year, attribute_name, attribute_value) %>%
     spread(attribute_name, attribute_value)
@@ -160,15 +163,17 @@ loadData <- function(filename) {
 #                   base = 1)
 
 modData <- function(wideData,
-                    yearCol = 'year',
-                    aalCol = 'Actuarial Accrued Liabilities Under GASB Standards',
-                    assetCol = 'Actuarial Assets under GASB standards',
+                    yearCol = "year",
+                    aalCol = "Actuarial Accrued Liabilities Under GASB Standards",
+                    assetCol = "Actuarial Assets under GASB standards",
                     base = 1000) {
   library(tidyverse)
   subsetData <- wideData %>%
-    rename(actuarialAssets = assetCol,
-           AAL = aalCol,
-           year = yearCol) %>%
+    rename(
+      actuarialAssets = assetCol,
+      AAL = aalCol,
+      year = yearCol
+    ) %>%
     select(year, actuarialAssets, AAL) %>%
     mutate(
       UAAL = as.numeric(AAL) - as.numeric(actuarialAssets),
@@ -187,13 +192,14 @@ modData <- function(wideData,
 
 ####################################################################
 # Description: This saves the theme for reuse in multiple plots
+# must have ggplot2 library loaded
 # Parameters: none
 # Usage:  ggplot(...) + reasonTheme
 
 reasonTheme <- theme(
   # removes legend
-  legend.position = 'none',
-  
+  legend.position = "none",
+
   # details the x-axis text
   axis.text.x = element_text(
     face = "bold",
@@ -203,18 +209,18 @@ reasonTheme <- theme(
     angle = 90,
     color = "black"
   ),
-  axis.title.x =  element_blank(),
-  
+  axis.title.x = element_blank(),
+
   # axis lines set to black
   axis.line.x = element_line(color = "black"),
   axis.line.y = element_line(color = "black"),
-  
+
   # left and right y-axis title and text fonts set
-  axis.title.y.left = element_text(face = 'bold', size = 14, color = "black"),
+  axis.title.y.left = element_text(face = "bold", size = 14, color = "black"),
   axis.text.y.left = element_text(face = "bold", size = 14, color = "black"),
-  axis.title.y.right = element_text(face = 'bold', size = 14, color = "black"),
+  axis.title.y.right = element_text(face = "bold", size = 14, color = "black"),
   axis.text.y.right = element_text(face = "bold", size = 14, color = "black"),
-  
+
   # sets the background to blank white
   panel.background = element_blank()
 )
@@ -231,31 +237,33 @@ modGraph <- function(data) {
   library(ggthemes)
   library(extrafont)
   library(scales)
-  
+
   # extrapolate between years linearly
   extrapo <- approx(data$year, data$UAAL, n = 10000)
   extrapo2 <- approx(data$year, data$fundedRatio, n = 10000)
   graph <-
-    data.frame(year = extrapo$x,
-               UAAL = extrapo$y,
-               fundedRatio = extrapo2$y)
+    data.frame(
+      year = extrapo$x,
+      UAAL = extrapo$y,
+      fundedRatio = extrapo2$y
+    )
   # create a "negative-positive" column for fill aesthetic
-  graph$sign[graph$UAAL >= 0] = "positive"
-  graph$sign[graph$UAAL < 0] = "negative"
-  
+  graph$sign[graph$UAAL >= 0] <- "positive"
+  graph$sign[graph$UAAL < 0] <- "negative"
+
   p <- ggplot(graph, aes(x = year)) +
     # area graph using pos/neg for fill color
     geom_area(aes(y = UAAL, fill = sign)) +
     # line tracing the area graph
     geom_line(aes(y = UAAL)) +
     # line with funded ratio
-    geom_line(aes(y = fundedRatio * (max(graph$UAAL))), color = '#3300FF', size = 1) +
+    geom_line(aes(y = fundedRatio * (max(graph$UAAL))), color = "#3300FF", size = 1) +
     # axis labels
-    labs(y = 'Unfunded Accrued Actuarial Liabilities', x = NULL) +
-    
+    labs(y = "Unfunded Accrued Actuarial Liabilities", x = NULL) +
+
     # colors assigned to pos, neg
     scale_fill_manual(values = c("negative" = "#669900", "positive" = "#CC0000")) +
-    
+
     # sets the y-axis scale
     scale_y_continuous(
       # creates 10 break points for labels
@@ -278,12 +286,13 @@ modGraph <- function(data) {
       # removes the extra space so the fill is at the origin
       expand = c(0, 0)
     ) +
-    
+
     # sets the x-axis scale
-    scale_x_continuous(# sets the years breaks to be every 2 years
+    scale_x_continuous( # sets the years breaks to be every 2 years
       breaks = round(seq(min(graph$year), max(graph$year), by = 2), 1),
-      expand = c(0, 0)) +
-    
+      expand = c(0, 0)
+    ) +
+
     # adds the Reason theme defined previously
     reasonTheme
   p
@@ -298,21 +307,21 @@ modGraph <- function(data) {
 modTable <- function(data) {
   library(DT)
   library(tidyverse)
-  
+
   data <- data %>%
     # give the columns pretty names
     rename(
-      'Year' = year,
-      'Actuarial Assets' = actuarialAssets,
-      'Actuarial Accrued Liabilities' = AAL,
-      'Unfunded Actuarial Accrued Liabilities' = UAAL,
-      'Funded Ratio' = fundedRatio
+      "Year" = year,
+      "Actuarial Assets" = actuarialAssets,
+      "Actuarial Accrued Liabilities" = AAL,
+      "Unfunded Actuarial Accrued Liabilities" = UAAL,
+      "Funded Ratio" = fundedRatio
     )
   # create a datatable
   datatable(
     data,
     # add buttons for export, etc.
-    extensions = c('Buttons'),
+    extensions = c("Buttons"),
     # remove row names
     rownames = FALSE,
     # allow editing the table, experimenting with this one
@@ -320,24 +329,24 @@ modTable <- function(data) {
     options = list(
       bPaginate = FALSE,
       scrollX = T,
-      scrollY = '600px',
-      dom = 'Brt',
+      scrollY = "600px",
+      dom = "Brt",
       buttons = list(
-        'copy',
+        "copy",
         list(
-          extend = 'csv',
-          text = 'csv',
-          title = 'MOD'
+          extend = "csv",
+          text = "csv",
+          title = "MOD"
         ),
         list(
-          extend = 'excel',
-          text = 'Excel',
-          title = 'MOD'
+          extend = "excel",
+          text = "Excel",
+          title = "MOD"
         ),
         list(
-          extend = 'pdf',
-          text = 'pdf',
-          title = 'MOD'
+          extend = "pdf",
+          text = "pdf",
+          title = "MOD"
         )
       )
     )
@@ -354,34 +363,38 @@ modTable <- function(data) {
 # Usage: glGraph(filename = 'data/Graph 1.csv')
 
 glGraph <-
-  function(filename, ylab = 'Changes in Unfunded Liability (in Billions)') {
+  function(filename, ylab = "Changes in Unfunded Liability (in Billions)") {
     library(ggplot2)
     library(tidyverse)
-    
+
     graph1 <- read_csv(filename) %>% # load data from csv file
-      gather('label', 'value') %>% # put in long format with label-value pairs
+      gather("label", "value") %>% # put in long format with label-value pairs
       mutate(label = str_wrap(label, 8)) %>% # wrap the label names to clean up axis labels
       mutate(label = str_to_title(label)) %>% # properly capitalize the labels
       # assign pos/neg/total to the values for fill color
       mutate(
-        label =  factor(label, levels = label),
-        sign = case_when(value >= 0 ~ "positive",
-                         value < 0 ~ "negative")
+        label = factor(label, levels = label),
+        sign = case_when(
+          value >= 0 ~ "positive",
+          value < 0 ~ "negative"
+        )
       ) %>%
-      mutate(sign = case_when(label == 'Total' ~ "total", TRUE ~ sign))
-    
+      mutate(sign = case_when(label == "Total" ~ "total", TRUE ~ sign))
+
     # assign colors to go with signs
-    fillColors <-  c("negative" = "#669900",
-                     "positive" = "#CC0000",
-                     "total" = "#FF6633")
-    
+    fillColors <- c(
+      "negative" = "#669900",
+      "positive" = "#CC0000",
+      "total" = "#FF6633"
+    )
+
     # create plot
     p <- ggplot(graph1, aes(x = label, y = value)) +
       geom_col(width = 0.75, aes(fill = sign)) +
       geom_hline(yintercept = 0, color = "black") +
       scale_fill_manual(values = fillColors) +
       scale_y_continuous(breaks = pretty_breaks(), labels = dollar_format(prefix = "$")) +
-      ylab('Changes in Unfunded Liability (in Billions)') +
+      ylab("Changes in Unfunded Liability (in Billions)") +
       reasonTheme +
       theme(
         axis.line.x = element_blank(),
@@ -412,15 +425,15 @@ glGraph <-
 
 
 selected_Data <- function(wideData,
-                          dateCol = 'Actuarial Valuation Date For GASB Assumptions',
-                          aalCol = 'Actuarial Accrued Liabilities Under GASB Standards',
-                          assetCol = 'Actuarial Assets under GASB standards',
-                          ADECCol = 'Employer Annual Required Contribution',
-                          empContCol = 'Employer Contributions',
-                          payrollCol = 'Covered Payroll') {
+                          dateCol = "Actuarial Valuation Date For GASB Assumptions",
+                          aalCol = "Actuarial Accrued Liabilities Under GASB Standards",
+                          assetCol = "Actuarial Assets under GASB standards",
+                          ADECCol = "Employer Annual Required Contribution",
+                          empContCol = "Employer Contributions",
+                          payrollCol = "Covered Payroll") {
   library(tidyverse)
   library(lubridate)
-  
+
   subsetData <- wideData %>%
     mutate(
       year = year(as_date(
@@ -459,7 +472,7 @@ selected_Data <- function(wideData,
       payroll
     ) %>%
     drop_na()
-  
+
   subsetData
 }
 
@@ -470,40 +483,48 @@ selected_Data <- function(wideData,
 # Usage: contGraph(data)
 
 contGraph <- function(data) {
-    library(ggplot2)
-    library(tidyverse)
-    
+  library(ggplot2)
+  library(tidyverse)
+
   graph <- data %>%
-    select(year, 
-           `ADEC Contribution Rates`,
-           `Actual Contribution Rates (Statutory)`) %>%
+    select(
+      year,
+      `ADEC Contribution Rates`,
+      `Actual Contribution Rates (Statutory)`
+    ) %>%
     mutate_all(funs(as.numeric)) %>%
     gather(key = contribution, value = amount, -year)
-  
-  Colors <-  c("ADEC Contribution Rates" = "#FF6633",
-               "Actual Contribution Rates (Statutory)" = "#3300FF")
-  
+
+  Colors <- c(
+    "ADEC Contribution Rates" = "#FF6633",
+    "Actual Contribution Rates (Statutory)" = "#3300FF"
+  )
+
   p <- ggplot(graph, aes(x = year)) +
     geom_line(aes(y = amount * 100, color = contribution), size = 2) +
     scale_fill_manual(values = lineColors) +
     geom_hline(yintercept = 0, color = "black") +
-    
-    scale_y_continuous(breaks = pretty_breaks(10), 
-                       labels = function(b) { 
-                         paste0(round(b, 0), "%")
-                       }) +
-    
-    scale_x_continuous(breaks = pretty_breaks(10)) + 
-    
-    ylab('Text graph 3 here') +
+
+    scale_y_continuous(
+      breaks = pretty_breaks(10),
+      labels = function(b) {
+        paste0(round(b, 0), "%")
+      }
+    ) +
+
+    scale_x_continuous(breaks = pretty_breaks(10)) +
+
+    ylab("Text graph 3 here") +
     scale_color_discrete(labels = c("Orange line means this", "Blue line means this")) +
-    
+
     reasonTheme +
-    theme(legend.justification = c(1, 1), 
-          legend.position = c(0.5, 1),
-          legend.title = element_blank())
-    p
-  }
+    theme(
+      legend.justification = c(1, 1),
+      legend.position = c(0.5, 1),
+      legend.title = element_blank()
+    )
+  p
+}
 
 ####################################################################
 # Description: This function projects payroll at the payroll growth rate
@@ -515,7 +536,7 @@ contGraph <- function(data) {
 
 payrollGrowth <- function(x, y = "payrollTotal", pgr) {
   output <- vector("double", nrow(x))
-  output[1] <-  as.numeric(x[[y]][1])
+  output[1] <- as.numeric(x[[y]][1])
   for (i in 2:nrow(x)) {
     output[i] <- output[i - 1] * (1 + pgr / 100)
   }
@@ -531,7 +552,7 @@ payrollGrowth <- function(x, y = "payrollTotal", pgr) {
 
 payrollExistingGrowth <- function(x, y = "existingPayroll") {
   output <- vector("double", nrow(x))
-  output[1] <-  as.numeric(x[[y]][1])
+  output[1] <- as.numeric(x[[y]][1])
   for (i in 2:nrow(x)) {
     output[i] <-
       max(output[i - 1] * ((1 - 0.036) - (0.036 * 0.01) * max(0, x$year[i] - 2017)), 0)
@@ -548,35 +569,36 @@ payrollExistingGrowth <- function(x, y = "existingPayroll") {
 dataTableFM <- function(data) {
   library(DT)
   library(tidyverse)
-  
+
   data <- data %>%
     rename(
-      'Year' = year,
-      'Valuation Date' = valuationDate,
-      'Contribution Fiscal Year' = contributionFY,
-      'Total Payroll' = payrollTotal,
-      'Existing Employee Payroll' = payrollExisting,
-      'Rehired Employee Payroll' = payrollRehi,
-      'New Employee Payroll' = payrollNew,
-      'Actuarial Assets' = actuarialAssets,
-      'Actuarial Accrued Liabilities' = AAL,
-      'Unfunded Actuarial Accrued Liabilities' = UAAL,
-      'Funded Ratio' = fundedRatio,
-      'Actuaially Determined Employer Contribution' = ADEC,
-      'Employer Contribution' = empCont
+      "Year" = year,
+      "Valuation Date" = valuationDate,
+      "Contribution Fiscal Year" = contributionFY,
+      "Total Payroll" = payrollTotal,
+      "Existing Employee Payroll" = payrollExisting,
+      "Rehired Employee Payroll" = payrollRehi,
+      "New Employee Payroll" = payrollNew,
+      "Actuarial Assets" = actuarialAssets,
+      "Actuarial Accrued Liabilities" = AAL,
+      "Unfunded Actuarial Accrued Liabilities" = UAAL,
+      "Funded Ratio" = fundedRatio,
+      "Actuaially Determined Employer Contribution" = ADEC,
+      "Employer Contribution" = empCont
     )
   datatable(
     data,
-    extensions = c('Buttons'),
+    extensions = c("Buttons"),
     rownames = FALSE,
     editable = TRUE,
     options = list(
       bPaginate = FALSE,
       scrollX = T,
-      scrollY = '600px',
-      dom = 'Brt',
-      buttons = c('copy', 'csv', 'excel', 'pdf', 'print')
-      )
-    ) %>% 
-    formatCurrency(c(3:5, 7:8, 11)) %>% formatPercentage(6, 9:10)
+      scrollY = "600px",
+      dom = "Brt",
+      buttons = c("copy", "csv", "excel", "pdf", "print")
+    )
+  ) %>%
+    formatCurrency(c(3:5, 7:8, 11)) %>%
+    formatPercentage(6, 9:10)
 }
