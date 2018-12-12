@@ -3,7 +3,23 @@
 # Author: Andrew Abbott
 # Date: 12/11/2018
 
-
+# Color Scheme
+# All images should use web safe colors — this gives us a range of orange and blue
+# colors that fit with Reason’s branding, as well as reds and greens that we can use to
+# indicate positive or negative data patterns. In general, it is best to choose from the
+# following palette of colors:
+#   • Orange (FF6633): Orange that matches with Reason’s logo
+#   • Yellow (FFCC33)
+#   • Dark Grey/Blue (333333)
+#   • Light Blue (3399CC)
+#   • Royal Blue (3366CC)
+#   • Grey (6699CC)
+# Use the orange and yellow colors to emphasize attention to lines or areas of
+# interest.
+# For graphs that require a clear positive/negative emphasis, you can use the
+# following colors:
+#   • Green (669933): for positive
+#   • Red (990000): for negative
 
 
 # This function grabs a list of the plans with their state from the Reason database.
