@@ -4,6 +4,8 @@
 # Date: 12/11/2018
 
 
+
+
 # This function grabs a list of the plans with their state from the Reason database.
 # Use this to find the exact plan names that are used in Reason's database.
 # Usage: This function has no parameters so calling the function will return the list of plans.
@@ -11,6 +13,8 @@
 # It would be inserted above the order by line.
 # example: where state.name in ('Texas', 'Arkansas')
 # example2: where plan.id in (30,31,33,90,91,466,1469,1473,1875,1877,1878,1913,1915)
+
+library(ggplot2)
 
 planList <- function() {
   library(RPostgres)
@@ -189,6 +193,7 @@ modData <- function(wideData,
 
 ####################################################################
 # Description: This saves the theme for reuse in multiple plots
+# must have ggplot2 library loaded
 # Parameters: none
 # Usage:  ggplot(...) + reasonTheme
 
