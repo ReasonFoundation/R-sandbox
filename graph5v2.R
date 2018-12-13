@@ -34,7 +34,11 @@ p <- ggplot(graph5, aes(x = labels)) +
   # annotate("label", x = 9, y = 15, label = "some text box with an\n arrow that I can move\n around when I want") +
   # annotate("segment", x = 9, xend = graph5$labels[11], y = 14, yend = graph5$percentage4[11] * 100 + 0.25, color = "pink", arrow = arrow()) +
   # scale_color_manual(values = c("TEXT 1" = "purple", "TEXT 2" = "pink", "TEXT 3" = "navyblue", "TEXT TEXT TEXT TEXT TEXT TEXT" = "lightblue")) +
+<<<<<<< HEAD
   theme(legend.justification = c(1, .5), 
+=======
+  theme(legend.justification = c(1, 1), 
+>>>>>>> 3244b85883cac44dfca233de0600fc7f6fd5f758
         legend.position = c(0.35, 0.25), 
         legend.title = element_blank(), 
         legend.text = element_text(size = 10)
