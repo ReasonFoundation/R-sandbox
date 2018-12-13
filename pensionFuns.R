@@ -512,7 +512,7 @@ contGraph <- function(data) {
     mutate_all(funs(as.numeric)) %>%
     gather(key = contribution, value = amount, -year)
 
-  Colors <- c(
+  lineColors <- c(
     "ADEC Contribution Rates" = "#FF6633",
     "Actual Contribution Rates (Statutory)" = "#3300FF"
   )
