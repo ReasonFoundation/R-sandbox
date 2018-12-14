@@ -1,0 +1,135 @@
+---
+title: "Pensions Shiny"
+author: "A Abbott"
+date: "12/3/2018"
+runtime: shiny
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    source_code: embed
+---
+
+```{r setup, message = FALSE}
+library(tidyverse)
+library(DT)
+source("pensionFuns.R")
+```
+
+Sidebar {.sidebar}
+======================================================
+
+```{r sidebar}
+planList <- planList()
+
+fluidRow(column(
+  10,
+  selectInput(
+    "state",
+    "Select a state:",
+    choices = levels(planList$state),
+    selected = "Texas"
+  )
+))
+fluidRow(column(10,
+                uiOutput("plan")))
+
+actionButton("go", "Submit")
+
+# Built with Shiny by RStudio
+h5(
+  "Built with",
+  img(src = "https://www.rstudio.com/wp-content/uploads/2014/04/shiny.png", height = "30px"),
+  "by",
+  img(src = "https://www.rstudio.com/wp-content/uploads/2014/07/RStudio-Logo-Blue-Gray.png", height = "30px"),
+  "."
+)
+
+plans <- reactive({
+  planList %>% 
+    subset(state == input$state) %>% 
+    select(display_name)
+})
+
+dataset <- eventReactive(input$go, {
+  subset <- pullData(input$plan)
+  subset_data <- spreadData(subset)
+})
+
+selectedData <- eventReactive(input$go, {
+  selected_Data(dataset())
+})
+
+output$plan <- renderUI({
+  selectInput("plan",
+              "Select a plan:",
+              choices = plans(),
+              selected = "Texas Employees Retirement System")
+})
+   
+```
+
+Pensions
+===============================================
+
+
+Row {.tabset .tabset-fade}
+-----------------------------------------------
+
+
+### Mountain of Debt
+
+```{r mod}
+renderPlot({
+  req(input$plan)
+  df <- selectedData()
+  p <- modGraph(df)
+  p
+})
+```
+
+### Employer Contribution
+
+```{r density}
+renderPlot({
+  req(input$plan)
+    df <- selectedData() %>%
+      select(year, `ADEC Contribution Rates`, `Actual Contribution Rates (Statutory)`) %>%
+      mutate_all(funs(as.numeric)) %>%
+      gather(key = contribution, value = amount, -year)
+    p2 <- ggplot(df, aes(x = year)) +
+      geom_line(aes(y = amount, color = contribution)) +
+      theme(
+        axis.line = element_line(color = "black"),
+        axis.text.x = element_text(
+          face = "bold",
+          size = 14,
+          vjust = 0.5,
+          angle = 90,
+          color = "black"
+        ),
+        axis.title.x = element_blank(),
+        axis.title.y.left = element_text(face = 'bold', size = 14, color = "black"),
+        axis.text.y.left = element_text(face = "bold", size = 14, color = "black"),
+        panel.background = element_blank(),
+        legend.title = element_blank(),
+        legend.text = element_text(face = "bold", size = 14, color = "black"),
+        legend.position = c(0.3, 0.8)
+      ) +
+      labs(y = "Employer Contribution (% of Payroll)") +
+      scale_y_continuous(
+        breaks = round(seq(0, max(df$amount), by = 2), 1),
+        labels = percent_format(accuracy = 0.1, scale = 1)
+      ) +
+      scale_x_continuous(breaks = round(seq(min(df$year), max(df$year), by = 2), 1))
+    p2
+})
+```
+
+### Data
+
+```{r combined}
+ renderDT({
+    modTable(selectedData())
+ })
+
+```
