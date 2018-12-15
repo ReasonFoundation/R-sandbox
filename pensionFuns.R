@@ -519,18 +519,19 @@ contGraph <- function(data,
       y3
     ) %>%
     mutate_all(funs(as.numeric)) %>%
+    rename(label1 = y1, label2 = y2, label3 = y3) %>% 
     gather(key = keys, value = amount, -year)
 
   lineColors <- c(
     y1 = "#FF6633",
     y2 = "#3300FF",
-    ys = "#333333"
+    y3 = "#333333"
   )
   
-  labels <- c(
-    y1 = label1,
-    y2 = label2,
-    ys = label3
+  labs <- c(
+    label1,
+    label2,
+    label3
   )
 
   p <- ggplot(graph, aes(x = year)) +
@@ -548,7 +549,7 @@ contGraph <- function(data,
     scale_x_continuous(breaks = pretty_breaks(10)) +
 
     ylab(labelY) +
-    scale_color_discrete(labels = labels) +
+    scale_color_discrete(labels = labs) +
 
     reasonTheme +
     theme(
