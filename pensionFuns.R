@@ -499,26 +499,43 @@ selected_Data <- function(wideData,
 #     data: the dataframe created by the selected_Data function
 # Usage: contGraph(data)
 
-contGraph <- function(data) {
+contGraph <- function(data, 
+                      y1 = "ADEC Contribution Rates", 
+                      y2 = "Actual Contribution Rates (Statutory)", 
+                      y3 = NULL,
+                      labelY = NULL,
+                      label1 = NULL, 
+                      label2 = NULL,
+                      label3 = NULL) {
   library(ggplot2)
   library(tidyverse)
+  library(scales)
 
   graph <- data %>%
     select(
       year,
-      `ADEC Contribution Rates`,
-      `Actual Contribution Rates (Statutory)`
+      y1,
+      y2, 
+      y3
     ) %>%
     mutate_all(funs(as.numeric)) %>%
-    gather(key = contribution, value = amount, -year)
+    rename(label1 = y1, label2 = y2, label3 = y3) %>% 
+    gather(key = keys, value = amount, -year)
 
   lineColors <- c(
-    "ADEC Contribution Rates" = "#FF6633",
-    "Actual Contribution Rates (Statutory)" = "#3300FF"
+    y1 = "#FF6633",
+    y2 = "#3300FF",
+    y3 = "#333333"
+  )
+  
+  labs <- c(
+    label1,
+    label2,
+    label3
   )
 
   p <- ggplot(graph, aes(x = year)) +
-    geom_line(aes(y = amount * 100, color = contribution), size = 2) +
+    geom_line(aes(y = amount * 100, color = keys), size = 2) +
     scale_fill_manual(values = lineColors) +
     geom_hline(yintercept = 0, color = "black") +
 
@@ -531,8 +548,8 @@ contGraph <- function(data) {
 
     scale_x_continuous(breaks = pretty_breaks(10)) +
 
-    ylab("Text graph 3 here") +
-    scale_color_discrete(labels = c("Orange line means this", "Blue line means this")) +
+    ylab(labelY) +
+    scale_color_discrete(labels = labs) +
 
     reasonTheme +
     theme(
