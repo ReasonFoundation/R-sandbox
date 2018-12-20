@@ -15,6 +15,7 @@ library(tidyquant)
 library(DT)
 library(lubridate)
 library(ggplot2)
+library(flexdashboard)
 source("pensionFuns.R")
 ```
 

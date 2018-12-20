@@ -3,11 +3,12 @@ source("pensionFuns.R")
 
 pl <- planList() %>% 
   filter(state == 'Vermont')
+
 data <- pullData("Vermont State Retirement System") %>% 
-  spreadData() %>% 
-  selected_Data() %>% 
-  mutate_if(is.character, as.numeric) %>% 
-  mutate(pctChangeUAAL = UAAL / UAAL[1], pctChangeCont = empCont / empCont[1])
+  spreadData() # %>% 
+  # selected_Data() %>% 
+  # mutate_if(is.character, as.numeric) %>% 
+  # mutate(pctChangeUAAL = UAAL / UAAL[1], pctChangeCont = empCont / empCont[1])
 
 data2 <- pullData("Vermont State Teachers' Retirement System") %>% 
   spreadData() %>% 
@@ -39,3 +40,5 @@ p <- contGraph(data,
 
 p
 ggsave("VTgraph.png")
+
+glGraph("Graph 1.csv")
