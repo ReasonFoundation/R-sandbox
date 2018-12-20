@@ -30,12 +30,12 @@
 # example: where state.name in ('Texas', 'Arkansas')
 # example2: where plan.id in (30,31,33,90,91,466,1469,1473,1875,1877,1878,1913,1915)
 
-library(ggplot2)
+require(ggplot2)
 
 planList <- function() {
-  library(RPostgres)
-  library(httr)
-  library(tidyverse)
+  require(RPostgres)
+  require(httr)
+  require(tidyverse)
 
   # The folliwing url is provided by Heroku
   url <-
@@ -82,9 +82,9 @@ planList <- function() {
 
 pullData <-
   function(displayName = "Texas Employees Retirement System") {
-    library(RPostgres)
-    library(httr)
-    library(tidyverse)
+    require(RPostgres)
+    require(httr)
+    require(tidyverse)
 
     # The folliwing url is provided by Heroku
     url <-
@@ -160,7 +160,7 @@ spreadData <- function(data) {
 # Usage: allWide <- loadData('data/NorthCarolina_PensionDatabase_TSERS.xlsx')
 
 loadData <- function(filename) {
-  library(readxl)
+  require(readxl)
   read_excel(filename, col_types = "numeric")
 }
 
@@ -184,7 +184,7 @@ modData <- function(wideData,
                     aalCol = "Actuarial Accrued Liabilities Under GASB Standards",
                     assetCol = "Actuarial Assets under GASB standards",
                     base = 1000) {
-  library(tidyverse)
+  require(tidyverse)
   subsetData <- wideData %>%
     rename(
       actuarialAssets = assetCol,
@@ -209,7 +209,7 @@ modData <- function(wideData,
 
 ####################################################################
 # Description: This saves the theme for reuse in multiple plots
-# must have ggplot2 library loaded
+# must have ggplot2 require loaded
 # Parameters: none
 # Usage:  ggplot(...) + reasonTheme
 
@@ -250,10 +250,10 @@ reasonTheme <- theme(
 # Usage: modGraph(data)
 
 modGraph <- function(data) {
-  library(tidyverse)
-  library(ggthemes)
-  library(extrafont)
-  library(scales)
+  require(tidyverse)
+  require(ggthemes)
+  require(extrafont)
+  require(scales)
 
   # extrapolate between years linearly
   extrapo <- approx(data$year, data$UAAL, n = 10000)
@@ -322,8 +322,8 @@ modGraph <- function(data) {
 # Usage: modTable(data)
 
 modTable <- function(data) {
-  library(DT)
-  library(tidyverse)
+  require(DT)
+  require(tidyverse)
 
   data <- data %>%
     # give the columns pretty names
@@ -381,8 +381,8 @@ modTable <- function(data) {
 
 glGraph <-
   function(filename, ylab = "Changes in Unfunded Liability (in Billions)") {
-    library(ggplot2)
-    library(tidyverse)
+    require(ggplot2)
+    require(tidyverse)
 
     graph1 <- read_csv(filename) %>% # load data from csv file
       gather("label", "value") %>% # put in long format with label-value pairs
@@ -394,7 +394,7 @@ glGraph <-
         sign = case_when(
           value >= 0 ~ "positive",
           value < 0 ~ "negative"
-        )
+          )
       ) %>%
       mutate(sign = case_when(label == "Total" ~ "total", TRUE ~ sign))
 
@@ -403,7 +403,7 @@ glGraph <-
       "negative" = "#669900",
       "positive" = "#CC0000",
       "total" = "#FF6633"
-    )
+      )
 
     # create plot
     p <- ggplot(graph1, aes(x = label, y = value)) +
@@ -411,7 +411,7 @@ glGraph <-
       geom_hline(yintercept = 0, color = "black") +
       scale_fill_manual(values = fillColors) +
       scale_y_continuous(breaks = pretty_breaks(), labels = dollar_format(prefix = "$")) +
-      ylab("Changes in Unfunded Liability (in Billions)") +
+      ylab(ylab) +
       reasonTheme +
       theme(
         axis.line.x = element_blank(),
@@ -448,8 +448,8 @@ selected_Data <- function(wideData,
                           ADECCol = "Employer Annual Required Contribution",
                           empContCol = "Employer Contributions",
                           payrollCol = "Covered Payroll") {
-  library(tidyverse)
-  library(lubridate)
+  require(tidyverse)
+  require(lubridate)
 
   subsetData <- wideData %>%
     mutate(
@@ -507,9 +507,9 @@ contGraph <- function(data,
                       label1 = NULL, 
                       label2 = NULL,
                       label3 = NULL) {
-  library(ggplot2)
-  library(tidyverse)
-  library(scales)
+  require(ggplot2)
+  require(tidyverse)
+  require(scales)
 
   graph <- data %>%
     select(
@@ -601,8 +601,8 @@ payrollExistingGrowth <- function(x, y = "existingPayroll") {
 # Usage: dataTableFM(data)
 
 dataTableFM <- function(data) {
-  library(DT)
-  library(tidyverse)
+  require(DT)
+  require(tidyverse)
 
   data <- data %>%
     rename(
