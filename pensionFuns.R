@@ -385,13 +385,14 @@ glGraph <-
       mutate(label = str_to_title(label)) %>% # properly capitalize the labels
       # assign pos/neg/total to the values for fill color
       mutate(
-        label = factor(label, levels = label),
         sign = case_when(
           value >= 0 ~ "positive",
           value < 0 ~ "negative"
           )
       ) %>%
-      mutate(sign = case_when(label == "Total" ~ "total", TRUE ~ sign))
+      mutate(sign = case_when(label == "Total" ~ "total", TRUE ~ sign)) %>% 
+      mutate(sign = factor(sign, levels = c("total", "negative", "positive"))) %>% 
+      mutate(label = factor(label, levels = label[order(sign, value, label, decreasing = TRUE)], ordered = TRUE))
 
     # assign colors to go with signs
     fill_colors <- c(
