@@ -252,25 +252,25 @@ modGraph <- function(data) {
   require(scales)
 
   # extrapolate between years linearly
-  extrapo <- approx(data$year, data$UAAL, n = 10000)
-  extrapo2 <- approx(data$year, data$fundedRatio, n = 10000)
+  extrapo <- approx(data$year, data$uaal, n = 10000)
+  extrapo2 <- approx(data$year, data$funded_ratio, n = 10000)
   graph <-
     data.frame(
       year = extrapo$x,
-      UAAL = extrapo$y,
-      fundedRatio = extrapo2$y
+      uaal = extrapo$y,
+      funded_ratio = extrapo2$y
     )
   # create a "negative-positive" column for fill aesthetic
-  graph$sign[graph$UAAL >= 0] <- "positive"
-  graph$sign[graph$UAAL < 0] <- "negative"
+  graph$sign[graph$uaal >= 0] <- "positive"
+  graph$sign[graph$uaal < 0] <- "negative"
 
   ggplot(graph, aes(x = year)) +
     # area graph using pos/neg for fill color
-    geom_area(aes(y = UAAL, fill = sign)) +
+    geom_area(aes(y = uaal, fill = sign)) +
     # line tracing the area graph
-    geom_line(aes(y = UAAL)) +
+    geom_line(aes(y = uaal)) +
     # line with funded ratio
-    geom_line(aes(y = fundedRatio * (max(graph$UAAL))), color = "#3300FF", size = 1) +
+    geom_line(aes(y = funded_ratio * (max(graph$uaal))), color = "#3300FF", size = 1) +
     # axis labels
     labs(y = "Unfunded Accrued Actuarial Liabilities", x = NULL) +
 
@@ -289,7 +289,7 @@ modGraph <- function(data) {
       ),
       # defines the right side y-axis as a transformation of the left side axis, maximum UAAL = 100%, sets the breaks, labels
       sec.axis = sec_axis(
-        ~ . / (max(graph$UAAL) / 100),
+        ~ . / (max(graph$uaal) / 100),
         breaks = pretty_breaks(n = 10),
         name = "Funded Ratio",
         labels = function(b) {
@@ -324,10 +324,10 @@ modTable <- function(data) {
     # give the columns pretty names
     rename(
       "Year" = year,
-      "Actuarial Assets" = actuarialAssets,
-      "Actuarial Accrued Liabilities" = AAL,
-      "Unfunded Actuarial Accrued Liabilities" = UAAL,
-      "Funded Ratio" = fundedRatio
+      "Actuarial Assets" = actuarial_assets,
+      "Actuarial Accrued Liabilities" = aal,
+      "Unfunded Actuarial Accrued Liabilities" = uaal,
+      "Funded Ratio" = funded_ratio
     )
   # create a datatable
   datatable(
