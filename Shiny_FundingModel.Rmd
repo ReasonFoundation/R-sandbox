@@ -17,6 +17,7 @@ library(lubridate)
 library(ggplot2)
 library(flexdashboard)
 source("pensionFuns.R")
+source("fundingModelLib.R")
 ```
 
 Sidebar {.sidebar}
@@ -38,7 +39,7 @@ fluidRow(column(10,
                 uiOutput("plan")))
 fluidRow(
   column(10,
-         numericInput("N", "Years to project", 35,
+         numericInput("n", "Years to project", 35,
                       min = 1, max = 100)))
 fluidRow(
   column(10,
@@ -46,23 +47,23 @@ fluidRow(
                       min = 0, max = 10)))
 fluidRow(
   column(10,
-         numericInput("currentDR", "Current Discount Rate %", 7.5,
+         numericInput("current_dr", "Current Discount Rate %", 7.5,
                       min = 3, max = 10)))
 fluidRow(
   column(10,
-         numericInput("futureDR", "Future Discount Rate %", 7.5,
+         numericInput("future_dr", "Future Discount Rate %", 7.5,
                       min = 3, max = 10)))
 fluidRow(
   column(10,
-         numericInput("existingGNC", "Existing Employee Gross Normal Cost Rate %", 11.75,
+         numericInput("existing_gnc", "Existing Employee Gross Normal Cost Rate %", 11.75,
                       min = 0, max = 20)))
 fluidRow(
   column(10,
-         numericInput("rehiredGNC", "Rehired Employee Gross Normal Cost Rate %", 11.75,
+         numericInput("rehired_gnc", "Rehired Employee Gross Normal Cost Rate %", 11.75,
                       min = 0, max = 20)))
 fluidRow(
   column(10,
-         numericInput("newGNC", "New Employee Gross Normal Cost Rate %", 11.75,
+         numericInput("new_gnc", "New Employee Gross Normal Cost Rate %", 11.75,
                       min = 0, max = 20)))
 
 actionButton("go", "Submit")
@@ -81,42 +82,43 @@ plans <- reactive({
 })
 
 dataset <- eventReactive(input$go, {
-  subset <- pullData(input$plan)
-  subset_data <- spreadData(subset)
+  pullData(input$plan) %>% 
+    spreadData()
 })
 
-selectedData <- eventReactive(input$go, {
-  allData <- selected_Data(dataset())
-  initial <- last(allData) %>%
+selected_data <- eventReactive(input$go, {
+  all_data <- selectedData(dataset())
+  initial <- last(all_data) %>%
     mutate_if(is.character, as.numeric) %>%
     mutate(
-      rehiPayroll = 104073,
-      newPayroll = 0,
-      existingPayroll = payroll
+      rehi_payroll = 104073,
+      new_payroll = 0,
+      existing_payroll = payroll
     ) %>%
-    mutate(payrollTotal = existingPayroll + rehiPayroll) %>%
     mutate(
-      UAAL = AAL - actuarialAssets,
-      fundedRatio = actuarialAssets / AAL,
-      `ADEC Contribution Rates` = ADEC / payrollTotal,
-      `Actual Contribution Rates (Statutory)` = empCont / payrollTotal
+      payroll_total = existing_payroll + rehi_payroll
+    ) %>%
+    mutate(
+      uaal = aal - actuarial_assets,
+      funded_ratio = actuarial_assets / aal,
+      `ADEC Contribution Rates` = adec / payroll_total,
+      `Actual Contribution Rates (Statutory)` = emp_cont / payroll_total
     )
-  date.min <- initial$valuationDate[1]
-  date.max <- date.min + years(input$N)
-  all.dates <- seq(date.min, date.max, by = "year")
-  new.df <- data.frame(list(valuationDate = all.dates))
-  merged.df <- merge(new.df, initial, all = T)
-  projection.df <- merged.df %>%
-    mutate(year = lag(year(valuationDate), default = first(year) - 1) + 1,
-           contributionFY = year + 2) %>%
+  date_min <- initial$valuation_date[1]
+  date_max <- date_min + years(input$n)
+  all_dates <- seq(date_min, date_max, by = "year")
+  new_df <- data.frame(list(valuation_date = all_dates))
+  merged_df <- merge(new_df, initial, all = T)
+  merged_df %>%
+    mutate(year = lag(year(valuation_date), default = first(year) - 1) + 1,
+           contribution_fy = year + 2) %>%
     mutate(
-      payrollTotal = payrollGrowth(., pgr = input$pgr),
-      payrollRehi = payrollGrowth(., y = "rehiPayroll", pgr = input$pgr),
-      payrollExisting = payrollExistingGrowth(.)
+      payroll_total = payrollGrowth(., pgr = input$pgr),
+      payroll_rehi = payrollGrowth(., y = "rehi_payroll", pgr = input$pgr),
+      payroll_existing = payrollExistingGrowth(.)
     ) %>%
-    mutate(payrollNew = payrollTotal - payrollRehi - payrollExisting) %>%
-    select(-c(payroll, rehiPayroll, newPayroll, existingPayroll))
-  projection.df
+    mutate(payroll_new = payroll_total - payroll_rehi - payroll_existing) %>%
+    select(-c(payroll, rehi_payroll, new_payroll, existing_payroll))
 })
 
 output$plan <- renderUI({
@@ -140,7 +142,7 @@ Row {.tabset .tabset-fade}
 
 ```{r combined}
  renderDT({
-    dataTableFM(selectedData())
+    dataTableFM(selected_data())
  })
 
 ```
