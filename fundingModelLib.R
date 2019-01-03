@@ -7,7 +7,7 @@
 #     pgr: the payroll growth rate
 # Usage: mutate(payrollTotal = payrollGrowth(., pgr = input$pgr))
 
-payrollGrowth <- function(x, y = "payrollTotal", pgr) {
+payrollGrowth <- function(x, y = "payroll_total", pgr) {
   output <- vector("double", nrow(x))
   output[1] <- as.numeric(x[[y]][1])
   for (i in 2:nrow(x)) {
@@ -23,7 +23,7 @@ payrollGrowth <- function(x, y = "payrollTotal", pgr) {
 #     y: the name of the column to project
 # Usage: mutate(payrollExisting = payrollExistingGrowth(.))
 
-payrollExistingGrowth <- function(x, y = "existingPayroll") {
+payrollExistingGrowth <- function(x, y = "existing_payroll") {
   output <- vector("double", nrow(x))
   output[1] <- as.numeric(x[[y]][1])
   for (i in 2:nrow(x)) {
@@ -46,18 +46,18 @@ dataTableFM <- function(data) {
   data <- data %>%
     rename(
       "Year" = year,
-      "Valuation Date" = valuationDate,
-      "Contribution Fiscal Year" = contributionFY,
-      "Total Payroll" = payrollTotal,
-      "Existing Employee Payroll" = payrollExisting,
-      "Rehired Employee Payroll" = payrollRehi,
-      "New Employee Payroll" = payrollNew,
-      "Actuarial Assets" = actuarialAssets,
-      "Actuarial Accrued Liabilities" = AAL,
-      "Unfunded Actuarial Accrued Liabilities" = UAAL,
-      "Funded Ratio" = fundedRatio,
-      "Actuaially Determined Employer Contribution" = ADEC,
-      "Employer Contribution" = empCont
+      "Valuation Date" = valuation_date,
+      "Contribution Fiscal Year" = contribution_fy,
+      "Total Payroll" = payroll_total,
+      "Existing Employee Payroll" = payroll_existing,
+      "Rehired Employee Payroll" = payroll_rehi,
+      "New Employee Payroll" = payroll_new,
+      "Actuarial Assets" = actuarial_assets,
+      "Actuarial Accrued Liabilities" = aal,
+      "Unfunded Actuarial Accrued Liabilities" = uaal,
+      "Funded Ratio" = funded_ratio,
+      "Actuaially Determined Employer Contribution" = adec,
+      "Employer Contribution" = emp_cont
     )
   datatable(
     data,

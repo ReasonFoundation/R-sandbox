@@ -55,8 +55,8 @@ dataset <- eventReactive(input$go, {
   subset_data <- spreadData(subset)
 })
 
-selectedData <- eventReactive(input$go, {
-  selected_Data(dataset())
+selected_data <- eventReactive(input$go, {
+  selectedData(dataset())
 })
 
 output$plan <- renderUI({
@@ -81,7 +81,7 @@ Row {.tabset .tabset-fade}
 ```{r mod}
 renderPlot({
   req(input$plan)
-  df <- selectedData()
+  df <- selected_data()
   p <- modGraph(df)
   p
 })
@@ -92,7 +92,7 @@ renderPlot({
 ```{r density}
 renderPlot({
   req(input$plan)
-    df <- selectedData() %>%
+    df <- selected_data() %>%
       select(year, `ADEC Contribution Rates`, `Actual Contribution Rates (Statutory)`) %>%
       mutate_all(funs(as.numeric)) %>%
       gather(key = contribution, value = amount, -year)
@@ -129,7 +129,7 @@ renderPlot({
 
 ```{r combined}
  renderDT({
-    modTable(selectedData())
+    modTable(selected_data())
  })
 
 ```
