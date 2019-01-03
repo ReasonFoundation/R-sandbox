@@ -1,11 +1,4 @@
 library(tidyverse)
-library(DT)
-library(readxl)
-library(openxlsx)
-library(highcharter)
-library(xts)
-library(lubridate)
-
 source("pensionFuns.R")
 
 pl <- planList()

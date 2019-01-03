@@ -5,34 +5,34 @@ pl <- planList() %>%
   filter(state == 'Vermont')
 
 data <- pullData("Vermont State Retirement System") %>% 
-  spreadData() # %>% 
-  # selected_Data() %>% 
-  # mutate_if(is.character, as.numeric) %>% 
-  # mutate(pctChangeUAAL = UAAL / UAAL[1], pctChangeCont = empCont / empCont[1])
+  spreadData() %>% 
+  selectedData() %>% 
+  mutate_if(is.character, as.numeric) %>% 
+  mutate(pct_change_uaal = uaal / uaal[1], pct_change_cont = emp_cont / emp_cont[1])
 
 data2 <- pullData("Vermont State Teachers' Retirement System") %>% 
   spreadData() %>% 
-  selected_Data() %>% 
+  selectedData() %>% 
   mutate_if(is.character, as.numeric) %>% 
-  mutate(pctChangeUAAL = UAAL / UAAL[1], pctChangeCont = empCont / empCont[1])
+  mutate(pct_change_uaal = uaal / uaal[1], pct_change_cont = emp_cont / emp_cont[1])
 
 gsp <- readxl::read_xls("VTNGSP.xls") %>% 
   mutate_if(is.character, as.numeric) %>% 
-  mutate(pctChangeGSP = VTNGSP / VTNGSP[1],
-         pctChangeExp = GeneralFund / GeneralFund[1])
+  mutate(pct_change_gsp = VTNGSP / VTNGSP[1],
+         pct_change_exp = GeneralFund / GeneralFund[1])
 
 data <- data %>% 
   left_join(gsp) %>% 
-  left_join(data2, by = "year", suffix = c("SE", "T")) %>% 
-  mutate(totUAAL = UAALSE + UAALT,
-         totCont = empContSE + empContT) %>% 
-  mutate(pctChangeTotUAAL = totUAAL / totUAAL[1], 
-         pctChangeTotCont = totCont / totCont[1])
+  left_join(data2, by = "year", suffix = c("_se", "_t")) %>% 
+  mutate(tot_uaal = uaal_se + uaal_t,
+         tot_cont = emp_cont_se + emp_cont_t) %>% 
+  mutate(pct_change_tot_uaal = tot_uaal / tot_uaal[1], 
+         pct_change_tot_cont = tot_cont / tot_cont[1])
 
 p <- contGraph(data, 
-               "pctChangeTotUAAL", 
-               "pctChangeTotCont", 
-               "pctChangeExp", 
+               "pct_change_tot_uaal", 
+               "pct_change_tot_cont", 
+               "pct_change_exp", 
                "Percent Change from 2001 Value", 
                "UAAL", 
                "Employer Contributions", 
@@ -41,4 +41,3 @@ p <- contGraph(data,
 p
 ggsave("VTgraph.png")
 
-glGraph("Graph 1.csv")
