@@ -66,13 +66,13 @@ planList <- function() {
   res <- dbSendQuery(con, q1)
   # fetches the results
   plans <- dbFetch(res)
-  pList <- plans %>%
+  p_list <- plans %>%
     mutate_if(sapply(plans, is.character), as.factor)
   # clears the results
   dbClearResult(res)
   # closes the connection
   dbDisconnect(con)
-  pList
+  p_list
 }
 
 ####################################################################
@@ -132,11 +132,11 @@ pullData <-
       paste0(q2, planId, " order by year, data_source_id, plan_attribute_id")
     # inserts the plan id into the middle of the query.
     res <- dbSendQuery(con, q3)
-    allData <- dbFetch(res)
+    all_data <- dbFetch(res)
     dbClearResult(res)
     dbDisconnect(con)
 
-    allData
+    all_data
   }
 
 ####################################################################
@@ -148,10 +148,12 @@ pullData <-
 # Usage: allWide <- spreadData(allData)
 
 spreadData <- function(data) {
-  allWide <- data %>%
-    select(year, attribute_name, attribute_value) %>%
-    spread(attribute_name, attribute_value)
-  allWide
+  data %>%
+    group_by_at(vars(-attribute_value)) %>%  # group by everything other than the value column. 
+    mutate(row_id = 1:n()) %>% 
+    ungroup() %>%  # build group index
+    spread(attribute_name, attribute_value, convert = TRUE) %>%    # spread
+    select(-row_id)  # drop the index
 }
 
 ####################################################################
@@ -179,32 +181,26 @@ loadData <- function(filename) {
 #                   assetCol = 'Actuarial Value of Assets',
 #                   base = 1)
 
-modData <- function(wideData,
-                    yearCol = "year",
-                    aalCol = "Actuarial Accrued Liabilities Under GASB Standards",
-                    assetCol = "Actuarial Assets under GASB standards",
+modData <- function(wide_data,
+                    year_col = "year",
+                    aal_col = "Actuarial Accrued Liabilities Under GASB Standards",
+                    asset_col = "Actuarial Assets under GASB standards",
                     base = 1000) {
   require(tidyverse)
-  subsetData <- wideData %>%
-    rename(
-      actuarialAssets = assetCol,
-      AAL = aalCol,
-      year = yearCol
-    ) %>%
-    select(year, actuarialAssets, AAL) %>%
+  wide_data %>%
+    select(year = year_col, actuarial_assets = asset_col, aal = aal_col) %>%
     mutate(
-      UAAL = as.numeric(AAL) - as.numeric(actuarialAssets),
+      uaal = as.numeric(aal) - as.numeric(actuarial_assets),
       # create a UAAL column as AAL-Actuarial Assets
-      fundedRatio = as.numeric(actuarialAssets) / as.numeric(AAL),
+      funded_ratio = as.numeric(actuarial_assets) / as.numeric(aal),
       # create a fundedRatio column as Actuarial Assets divided by AAL
     ) %>%
     mutate(
-      actuarialAssets = as.numeric(actuarialAssets) * base,
-      AAL = as.numeric(AAL) * base,
-      UAAL = UAAL * base
+      actuarial_assets = as.numeric(actuarial_assets) * base,
+      aal = as.numeric(aal) * base,
+      uaal = uaal * base
     ) %>%
     drop_na()
-  subsetData
 }
 
 ####################################################################
@@ -268,7 +264,7 @@ modGraph <- function(data) {
   graph$sign[graph$UAAL >= 0] <- "positive"
   graph$sign[graph$UAAL < 0] <- "negative"
 
-  p <- ggplot(graph, aes(x = year)) +
+  ggplot(graph, aes(x = year)) +
     # area graph using pos/neg for fill color
     geom_area(aes(y = UAAL, fill = sign)) +
     # line tracing the area graph
@@ -312,7 +308,6 @@ modGraph <- function(data) {
 
     # adds the Reason theme defined previously
     reasonTheme
-  p
 }
 
 ####################################################################
@@ -399,17 +394,17 @@ glGraph <-
       mutate(sign = case_when(label == "Total" ~ "total", TRUE ~ sign))
 
     # assign colors to go with signs
-    fillColors <- c(
+    fill_colors <- c(
       "negative" = "#669900",
       "positive" = "#CC0000",
       "total" = "#FF6633"
       )
 
     # create plot
-    p <- ggplot(graph1, aes(x = label, y = value)) +
+    ggplot(graph1, aes(x = label, y = value)) +
       geom_col(width = 0.75, aes(fill = sign)) +
       geom_hline(yintercept = 0, color = "black") +
-      scale_fill_manual(values = fillColors) +
+      scale_fill_manual(values = fill_colors) +
       scale_y_continuous(breaks = pretty_breaks(), labels = dollar_format(prefix = "$")) +
       ylab(ylab) +
       reasonTheme +
@@ -419,7 +414,6 @@ glGraph <-
         axis.text.x = element_text(angle = 0)
       )
     # ggsave("graph1.2.png", width = 9, height = 5.33)
-    p
   }
 
 ####################################################################
@@ -441,56 +435,48 @@ glGraph <-
 #                   payrollCol = 'Covered Payroll')
 
 
-selected_Data <- function(wideData,
-                          dateCol = "Actuarial Valuation Date For GASB Assumptions",
-                          aalCol = "Actuarial Accrued Liabilities Under GASB Standards",
-                          assetCol = "Actuarial Assets under GASB standards",
-                          ADECCol = "Employer Annual Required Contribution",
-                          empContCol = "Employer Contributions",
-                          payrollCol = "Covered Payroll") {
+selectedData <- function(wide_data,
+                          date_col = "Actuarial Valuation Date For GASB Assumptions",
+                          aal_col = "Actuarial Accrued Liabilities Under GASB Standards",
+                          asset_col = "Actuarial Assets under GASB standards",
+                          adec_col = "Employer Annual Required Contribution",
+                          emp_cont_col = "Employer Contributions",
+                          payroll_col = "Covered Payroll") {
   require(tidyverse)
   require(lubridate)
 
-  subsetData <- wideData %>%
+  wide_data %>%
     mutate(
-      year = year(as_date(
-        as.numeric(`Actuarial Valuation Date For GASB Assumptions`),
-        origin = "1900-01-01"
-      )),
-      valuationDate = as_date(
-        as.numeric(`Actuarial Valuation Date For GASB Assumptions`),
-        origin = "1900-01-01"
-      )
-    ) %>%
+      year = year(as_date(as.numeric(`Actuarial Valuation Date For GASB Assumptions`), origin = "1900-01-01")),
+      valuation_date = as_date(as.numeric(`Actuarial Valuation Date For GASB Assumptions`), origin = "1900-01-01")
+      ) %>%
     rename(
-      actuarialAssets = assetCol,
-      AAL = aalCol,
-      ADEC = ADECCol,
-      empCont = empContCol,
-      payroll = payrollCol
+      actuarial_assets = asset_col,
+      aal = aal_col,
+      adec = adec_col,
+      emp_cont = emp_cont_col,
+      payroll = payroll_col
     ) %>%
     mutate(
-      UAAL = as.numeric(AAL) - as.numeric(actuarialAssets),
-      fundedRatio = as.numeric(actuarialAssets) / as.numeric(AAL),
-      `ADEC Contribution Rates` = as.numeric(ADEC) / as.numeric(payroll),
-      `Actual Contribution Rates (Statutory)` = as.numeric(empCont) / as.numeric(payroll)
+      uaal = as.numeric(aal) - as.numeric(actuarial_assets),
+      funded_ratio = as.numeric(actuarial_assets) / as.numeric(aal),
+      `ADEC Contribution Rates` = as.numeric(adec) / as.numeric(payroll),
+      `Actual Contribution Rates (Statutory)` = as.numeric(emp_cont) / as.numeric(payroll)
     ) %>%
     select(
       year,
-      valuationDate,
-      actuarialAssets,
-      AAL,
-      UAAL,
-      fundedRatio,
-      ADEC,
-      empCont,
+      valuation_date,
+      actuarial_assets,
+      aal,
+      uaal,
+      funded_ratio,
+      adec,
+      emp_cont,
       `ADEC Contribution Rates`,
       `Actual Contribution Rates (Statutory)`,
       payroll
     ) %>%
     drop_na()
-
-  subsetData
 }
 
 ####################################################################
@@ -534,7 +520,7 @@ contGraph <- function(data,
     label3
   )
 
-  p <- ggplot(graph, aes(x = year)) +
+  ggplot(graph, aes(x = year)) +
     geom_line(aes(y = amount * 100, color = keys), size = 2) +
     scale_fill_manual(values = lineColors) +
     geom_hline(yintercept = 0, color = "black") +
@@ -557,82 +543,4 @@ contGraph <- function(data,
       legend.position = c(0.5, 1),
       legend.title = element_blank()
     )
-  p
-}
-
-####################################################################
-# Description: This function projects payroll at the payroll growth rate
-# Parameters:
-#     x: the dataframe containing a payroll column
-#     y: the name of the column to project
-#     pgr: the payroll growth rate
-# Usage: mutate(payrollTotal = payrollGrowth(., pgr = input$pgr))
-
-payrollGrowth <- function(x, y = "payrollTotal", pgr) {
-  output <- vector("double", nrow(x))
-  output[1] <- as.numeric(x[[y]][1])
-  for (i in 2:nrow(x)) {
-    output[i] <- output[i - 1] * (1 + pgr / 100)
-  }
-  output
-}
-
-####################################################################
-# Description: This function projects existing employee payroll
-# Parameters:
-#     x: the dataframe containing a payroll column
-#     y: the name of the column to project
-# Usage: mutate(payrollExisting = payrollExistingGrowth(.))
-
-payrollExistingGrowth <- function(x, y = "existingPayroll") {
-  output <- vector("double", nrow(x))
-  output[1] <- as.numeric(x[[y]][1])
-  for (i in 2:nrow(x)) {
-    output[i] <-
-      max(output[i - 1] * ((1 - 0.036) - (0.036 * 0.01) * max(0, x$year[i] - 2017)), 0)
-  }
-  output
-}
-
-####################################################################
-# Description: This function creates an exportable data table of the funding model data
-# Parameters:
-#     data: the dataframe containing the funding model projections
-# Usage: dataTableFM(data)
-
-dataTableFM <- function(data) {
-  require(DT)
-  require(tidyverse)
-
-  data <- data %>%
-    rename(
-      "Year" = year,
-      "Valuation Date" = valuationDate,
-      "Contribution Fiscal Year" = contributionFY,
-      "Total Payroll" = payrollTotal,
-      "Existing Employee Payroll" = payrollExisting,
-      "Rehired Employee Payroll" = payrollRehi,
-      "New Employee Payroll" = payrollNew,
-      "Actuarial Assets" = actuarialAssets,
-      "Actuarial Accrued Liabilities" = AAL,
-      "Unfunded Actuarial Accrued Liabilities" = UAAL,
-      "Funded Ratio" = fundedRatio,
-      "Actuaially Determined Employer Contribution" = ADEC,
-      "Employer Contribution" = empCont
-    )
-  datatable(
-    data,
-    extensions = c("Buttons"),
-    rownames = FALSE,
-    editable = TRUE,
-    options = list(
-      bPaginate = FALSE,
-      scrollX = T,
-      scrollY = "600px",
-      dom = "Brt",
-      buttons = c("copy", "csv", "excel", "pdf", "print")
-    )
-  ) %>%
-    formatCurrency(c(3:5, 7:8, 11)) %>%
-    formatPercentage(6, 9:10)
 }
