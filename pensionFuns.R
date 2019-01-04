@@ -21,6 +21,18 @@
 #   • Green (669933): for positive
 #   • Red (990000): for negative
 
+# This function installs the required packages.
+# Usage: installRequiredPackages()
+
+installRequiredPackages <- function() {
+  packages_needed <- c('tidyverse', 'RPostgres', 'ggplot2', 'httr', 'ggthemes', 'extrafont', 'scales', 'DT', 'lubridate')
+  installed <- installed.packages()
+  sapply(packages_needed, function(p)
+    if(!p %in% installed[,1]){
+      install.packages(p)
+      }
+    )
+}
 
 # This function grabs a list of the plans with their state from the Reason database.
 # Use this to find the exact plan names that are used in Reason's database.
@@ -162,7 +174,7 @@ spreadData <- function(data) {
 # Usage: allWide <- loadData('data/NorthCarolina_PensionDatabase_TSERS.xlsx')
 
 loadData <- function(filename) {
-  require(readxl)
+  require(tidyverse)
   read_excel(filename, col_types = "numeric")
 }
 
