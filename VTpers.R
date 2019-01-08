@@ -5,13 +5,11 @@ pl <- planList() %>%
   filter(state == 'Vermont')
 
 data <- pullData("Vermont State Retirement System") %>% 
-  spreadData() %>% 
   selectedData() %>% 
   mutate_if(is.character, as.numeric) %>% 
   mutate(pct_change_uaal = uaal / uaal[1], pct_change_cont = emp_cont / emp_cont[1])
 
 data2 <- pullData("Vermont State Teachers' Retirement System") %>% 
-  spreadData() %>% 
   selectedData() %>% 
   mutate_if(is.character, as.numeric) %>% 
   mutate(pct_change_uaal = uaal / uaal[1], pct_change_cont = emp_cont / emp_cont[1])

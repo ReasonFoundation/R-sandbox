@@ -168,6 +168,7 @@ pullData <-
 loadData <- function(filename) {
   require(tidyverse)
   require(janitor)
+  require(readxl)
   read_excel(filename, col_types = "numeric") %>% 
     clean_names()
 }
@@ -189,8 +190,8 @@ loadData <- function(filename) {
 
 modData <- function(wide_data,
                     year_col = "year",
-                    aal_col = "Actuarial Accrued Liabilities Under GASB Standards",
-                    asset_col = "Actuarial Assets under GASB standards",
+                    aal_col = "actuarial_accrued_liabilities_under_gasb_standards",
+                    asset_col = "actuarial_assets_under_gasb_standards",
                     base = 1000) {
   require(tidyverse)
   wide_data %>%

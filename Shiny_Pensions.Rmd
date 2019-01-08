@@ -51,8 +51,7 @@ plans <- reactive({
 })
 
 dataset <- eventReactive(input$go, {
-  subset <- pullData(input$plan)
-  subset_data <- spreadData(subset)
+  pullData(input$plan)
 })
 
 selected_data <- eventReactive(input$go, {
@@ -93,7 +92,7 @@ renderPlot({
 renderPlot({
   req(input$plan)
     df <- selected_data() %>%
-      select(year, `ADEC Contribution Rates`, `Actual Contribution Rates (Statutory)`) %>%
+      select(year, adec_contribution_rates, actual_contribution_rates) %>%
       mutate_all(funs(as.numeric)) %>%
       gather(key = contribution, value = amount, -year)
     p2 <- ggplot(df, aes(x = year)) +

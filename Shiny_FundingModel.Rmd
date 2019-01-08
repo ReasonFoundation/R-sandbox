@@ -109,8 +109,7 @@ plans <- reactive({
 })
 
 dataset <- eventReactive(input$go, {
-  pullData(input$plan) %>% 
-    spreadData()
+  pullData(input$plan)
 })
 
 selected_data <- eventReactive(input$go, {
