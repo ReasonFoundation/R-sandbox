@@ -151,27 +151,14 @@ pullData <-
       clean_names()
     dbClearResult(res)
     dbDisconnect(con)
-    all_data
+    all_data %>%
+      group_by_at(vars(-attribute_value)) %>%  # group by everything other than the value column. 
+      mutate(row_id = 1:n()) %>% 
+      ungroup() %>%  # build group index
+      spread(attribute_name, attribute_value, convert = TRUE) %>%    # spread
+      select(-row_id) %>%  # drop the index
+      clean_names()
   }
-
-####################################################################
-# Description: This function changes the data from long to wide.
-# Parameters:
-#     data = a datafrane in long format
-#     name = The name of the attribute name column, defaults to attribute_name which is used in Reason's database
-#     value = The name of the attribute value column, defaults to attribute_value
-# Usage: allWide <- spreadData(allData)
-
-spreadData <- function(data) {
-  library(janitor)
-  data %>%
-    group_by_at(vars(-attribute_value)) %>%  # group by everything other than the value column. 
-    mutate(row_id = 1:n()) %>% 
-    ungroup() %>%  # build group index
-    spread(attribute_name, attribute_value, convert = TRUE) %>%    # spread
-    select(-row_id) %>%  # drop the index
-    clean_names()
-}
 
 ####################################################################
 # Description: This function loads plan data from an Excel file
@@ -181,6 +168,7 @@ spreadData <- function(data) {
 loadData <- function(filename) {
   require(tidyverse)
   require(janitor)
+  require(readxl)
   read_excel(filename, col_types = "numeric") %>% 
     clean_names()
 }
@@ -202,8 +190,8 @@ loadData <- function(filename) {
 
 modData <- function(wide_data,
                     year_col = "year",
-                    aal_col = "Actuarial Accrued Liabilities Under GASB Standards",
-                    asset_col = "Actuarial Assets under GASB standards",
+                    aal_col = "actuarial_accrued_liabilities_under_gasb_standards",
+                    asset_col = "actuarial_assets_under_gasb_standards",
                     base = 1000) {
   require(tidyverse)
   wide_data %>%

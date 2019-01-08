@@ -4,8 +4,7 @@ source("pensionFuns.R")
 pl <- planList()
 KS <- pl %>% filter(state == 'Kansas')
 
-allData <- pullData("Kansas Public Employees' Retirement System")
-allWide <- spreadData(allData) 
+allWide <- pullData("Kansas Public Employees' Retirement System")
 
 data <- modData(allWide) 
 
