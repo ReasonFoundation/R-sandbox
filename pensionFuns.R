@@ -25,7 +25,7 @@
 # Usage: installRequiredPackages()
 
 installRequiredPackages <- function() {
-  packages_needed <- c('tidyverse', 'RPostgres', 'ggplot2', 'httr', 'ggthemes', 'extrafont', 'scales', 'DT', 'lubridate')
+  packages_needed <- c('tidyverse', 'RPostgres', 'ggplot2', 'httr', 'ggthemes', 'extrafont', 'scales', 'DT', 'lubridate', 'janitor')
   installed <- installed.packages()
   sapply(packages_needed, function(p)
     if(!p %in% installed[,1]){
@@ -48,6 +48,7 @@ planList <- function() {
   require(RPostgres)
   require(httr)
   require(tidyverse)
+  require(janitor)
 
   # The folliwing url is provided by Heroku
   url <-
@@ -79,12 +80,13 @@ planList <- function() {
   # fetches the results
   plans <- dbFetch(res)
   p_list <- plans %>%
-    mutate_if(sapply(plans, is.character), as.factor)
+    mutate_if(sapply(plans, is.character), as.factor) %>% 
+    clean_names() 
   # clears the results
   dbClearResult(res)
   # closes the connection
   dbDisconnect(con)
-  p_list
+  p_list 
 }
 
 ####################################################################
@@ -93,10 +95,11 @@ planList <- function() {
 # Usage: example: allData <- pullData("Kansas Public Employees' Retirement System")
 
 pullData <-
-  function(displayName = "Texas Employees Retirement System") {
+  function(plan_name = "Texas Employees Retirement System") {
     require(RPostgres)
     require(httr)
     require(tidyverse)
+    require(janitor)
 
     # The folliwing url is provided by Heroku
     url <-
@@ -138,16 +141,16 @@ pullData <-
   plan_id = "
     pl <- planList()
     # calls planList to get the plan id for the chosen plan
-    planId <- pl$id[pl$display_name == displayName]
+    plan_id <- pl$id[pl$display_name == plan_name]
     # gets the matching plan id. This avoids problems with quotations in plan names.
     q3 <-
-      paste0(q2, planId, " order by year, data_source_id, plan_attribute_id")
+      paste0(q2, plan_id, " order by year, data_source_id, plan_attribute_id")
     # inserts the plan id into the middle of the query.
     res <- dbSendQuery(con, q3)
-    all_data <- dbFetch(res)
+    all_data <- dbFetch(res) %>% 
+      clean_names()
     dbClearResult(res)
     dbDisconnect(con)
-
     all_data
   }
 
@@ -160,12 +163,14 @@ pullData <-
 # Usage: allWide <- spreadData(allData)
 
 spreadData <- function(data) {
+  library(janitor)
   data %>%
     group_by_at(vars(-attribute_value)) %>%  # group by everything other than the value column. 
     mutate(row_id = 1:n()) %>% 
     ungroup() %>%  # build group index
     spread(attribute_name, attribute_value, convert = TRUE) %>%    # spread
-    select(-row_id)  # drop the index
+    select(-row_id) %>%  # drop the index
+    clean_names()
 }
 
 ####################################################################
@@ -175,7 +180,9 @@ spreadData <- function(data) {
 
 loadData <- function(filename) {
   require(tidyverse)
-  read_excel(filename, col_types = "numeric")
+  require(janitor)
+  read_excel(filename, col_types = "numeric") %>% 
+    clean_names()
 }
 
 ####################################################################
@@ -449,21 +456,24 @@ glGraph <-
 
 
 selectedData <- function(wide_data,
-                          date_col = "Actuarial Valuation Date For GASB Assumptions",
-                          aal_col = "Actuarial Accrued Liabilities Under GASB Standards",
-                          asset_col = "Actuarial Assets under GASB standards",
-                          adec_col = "Employer Annual Required Contribution",
-                          emp_cont_col = "Employer Contributions",
-                          payroll_col = "Covered Payroll") {
+                          date_col = "actuarial_valuation_date_for_gasb_assumptions",
+                          aal_col = "actuarial_accrued_liabilities_under_gasb_standards",
+                          asset_col = "actuarial_assets_under_gasb_standards",
+                          adec_col = "employer_annual_required_contribution",
+                          emp_cont_col = "employer_contributions",
+                          payroll_col = "covered_payroll") {
   require(tidyverse)
   require(lubridate)
+  require(janitor)
 
   wide_data %>%
     mutate(
-      year = year(as_date(as.numeric(`Actuarial Valuation Date For GASB Assumptions`), origin = "1900-01-01")),
-      valuation_date = as_date(as.numeric(`Actuarial Valuation Date For GASB Assumptions`), origin = "1900-01-01")
+      year = year(excel_numeric_to_date(as.numeric(actuarial_valuation_date_for_gasb_assumptions))),
+      valuation_date = excel_numeric_to_date(as.numeric(actuarial_valuation_date_for_gasb_assumptions))
       ) %>%
-    rename(
+    select(
+      year,
+      valuation_date,
       actuarial_assets = asset_col,
       aal = aal_col,
       adec = adec_col,
@@ -473,21 +483,8 @@ selectedData <- function(wide_data,
     mutate(
       uaal = as.numeric(aal) - as.numeric(actuarial_assets),
       funded_ratio = as.numeric(actuarial_assets) / as.numeric(aal),
-      `ADEC Contribution Rates` = as.numeric(adec) / as.numeric(payroll),
-      `Actual Contribution Rates (Statutory)` = as.numeric(emp_cont) / as.numeric(payroll)
-    ) %>%
-    select(
-      year,
-      valuation_date,
-      actuarial_assets,
-      aal,
-      uaal,
-      funded_ratio,
-      adec,
-      emp_cont,
-      `ADEC Contribution Rates`,
-      `Actual Contribution Rates (Statutory)`,
-      payroll
+      adec_contribution_rates = as.numeric(adec) / as.numeric(payroll),
+      actual_contribution_rates = as.numeric(emp_cont) / as.numeric(payroll)
     ) %>%
     drop_na()
 }

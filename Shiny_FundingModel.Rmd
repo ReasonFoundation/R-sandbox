@@ -26,45 +26,72 @@ Sidebar {.sidebar}
 ```{r sidebar}
 pl <- planList()
 
-fluidRow(column(
-  10,
-  selectInput(
-    "state",
-    "Select a state:",
-    choices = levels(pl$state),
-    selected = "Arkansas"
-  )
-))
-fluidRow(column(10,
-                uiOutput("plan")))
 fluidRow(
   column(10,
-         numericInput("n", "Years to project", 35,
-                      min = 1, max = 100)))
+         selectInput("state",
+                     "Select a state:",
+                     choices = levels(pl$state),
+                     selected = "Arkansas")))
+
 fluidRow(
   column(10,
-         numericInput("pgr", "Payroll Growth Rate %", 2.75,
-                      min = 0, max = 10)))
+         uiOutput("plan")))
+
 fluidRow(
   column(10,
-         numericInput("current_dr", "Current Discount Rate %", 7.5,
-                      min = 3, max = 10)))
+         numericInput("n", 
+                      "Years to project", 
+                      35,
+                      min = 1, 
+                      max = 100)))
+
 fluidRow(
   column(10,
-         numericInput("future_dr", "Future Discount Rate %", 7.5,
-                      min = 3, max = 10)))
+         numericInput("pgr", 
+                      "Payroll Growth Rate %", 
+                      2.75,
+                      min = 0, 
+                      max = 10)))
+
 fluidRow(
   column(10,
-         numericInput("existing_gnc", "Existing Employee Gross Normal Cost Rate %", 11.75,
-                      min = 0, max = 20)))
+         numericInput("current_dr", 
+                      "Current Discount Rate %", 
+                      7.5,
+                      min = 3, 
+                      max = 10)))
+
 fluidRow(
   column(10,
-         numericInput("rehired_gnc", "Rehired Employee Gross Normal Cost Rate %", 11.75,
-                      min = 0, max = 20)))
+         numericInput("future_dr", 
+                      "Future Discount Rate %", 
+                      7.5,
+                      min = 3,
+                      max = 10)))
+
 fluidRow(
   column(10,
-         numericInput("new_gnc", "New Employee Gross Normal Cost Rate %", 11.75,
-                      min = 0, max = 20)))
+         numericInput("existing_gnc",
+                      "Existing Employee Gross Normal Cost Rate %", 
+                      11.75,
+                      min = 0, 
+                      max = 20)))
+
+fluidRow(
+  column(10,
+         numericInput("rehired_gnc", 
+                      "Rehired Employee Gross Normal Cost Rate %", 
+                      11.75,
+                      min = 0,
+                      max = 20)))
+
+fluidRow(
+  column(10,
+         numericInput("new_gnc", 
+                      "New Employee Gross Normal Cost Rate %",
+                      11.75,
+                      min = 0,
+                      max = 20)))
 
 actionButton("go", "Submit")
 
@@ -87,7 +114,7 @@ dataset <- eventReactive(input$go, {
 })
 
 selected_data <- eventReactive(input$go, {
-  all_data <- selectedData(dataset())
+  all_data <- fundingData(dataset())
   initial <- last(all_data) %>%
     mutate_if(is.character, as.numeric) %>%
     mutate(
