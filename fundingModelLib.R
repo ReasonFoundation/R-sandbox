@@ -23,32 +23,59 @@ fundingData <- function(wide_data,
                         asset_col = "actuarial_assets_under_gasb_standards",
                         adec_col = "employer_annual_required_contribution",
                         emp_cont_col = "employer_contributions",
-                        payroll_col = "covered_payroll") {
+                        payroll_col = "covered_payroll",
+                        n = 35,
+                        pgr = 2.75) {
   require(tidyverse)
   require(lubridate)
   require(janitor)
   
-  wide_data %>%
-    mutate(
-      year = year(excel_numeric_to_date(as.numeric(actuarial_valuation_date_for_gasb_assumptions))),
-      valuation_date = excel_numeric_to_date(as.numeric(actuarial_valuation_date_for_gasb_assumptions))
-    ) %>%
+  initial <- wide_data %>%
     select(
       year,
-      valuation_date,
+      valuation_date = date_col,
       actuarial_assets = asset_col,
       aal = aal_col,
       adec = adec_col,
       emp_cont = emp_cont_col,
-      payroll = payroll_col
+      existing_payroll = payroll_col
     ) %>%
     mutate(
+      year = year(excel_numeric_to_date(as.numeric(valuation_date))),
+      valuation_date = excel_numeric_to_date(as.numeric(valuation_date)),
       uaal = as.numeric(aal) - as.numeric(actuarial_assets),
       funded_ratio = as.numeric(actuarial_assets) / as.numeric(aal),
-      adec_contribution_rates = as.numeric(adec) / as.numeric(payroll),
-      actual_contribution_rates = as.numeric(emp_cont) / as.numeric(payroll)
+      adec_contribution_rates = as.numeric(adec) / as.numeric(existing_payroll),
+      actual_contribution_rates = as.numeric(emp_cont) / as.numeric(existing_payroll)
     ) %>%
-    drop_na()
+    last() %>%
+    mutate(
+      rehi_payroll = 104073,
+      new_payroll = 0,
+      payroll_total = existing_payroll + rehi_payroll,
+      uaal = aal - actuarial_assets,
+      funded_ratio = actuarial_assets / aal,
+      adec_contribution_rate = adec / payroll_total,
+      actual_contribution_rate = emp_cont / payroll_total
+    ) 
+  date_min <- initial$valuation_date[1]
+  date_max <- date_min + years(n)
+  all_dates <- seq(date_min, date_max, by = "year")
+  new_df <- data.frame(list(valuation_date = all_dates))
+  merge(new_df, initial, all = T) %>%
+    mutate(
+      year = lag(year(valuation_date), default = first(year) - 1) + 1, 
+      contribution_fy = year + 2
+    ) %>%
+    mutate(
+      payroll_total = payrollGrowth(., pgr = pgr),
+      payroll_rehi = payrollGrowth(., y = "rehi_payroll", pgr = pgr),
+      payroll_existing = payrollExistingGrowth(.)
+    ) %>%
+    mutate(
+      payroll_new = payroll_total - payroll_rehi - payroll_existing
+    ) %>%
+    select(-c(rehi_payroll, new_payroll, existing_payroll))
 }
 
 ####################################################################
