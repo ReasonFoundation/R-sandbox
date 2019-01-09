@@ -113,38 +113,7 @@ dataset <- eventReactive(input$go, {
 })
 
 selected_data <- eventReactive(input$go, {
-  all_data <- fundingData(dataset())
-  initial <- last(all_data) %>%
-    mutate_if(is.character, as.numeric) %>%
-    mutate(
-      rehi_payroll = 104073,
-      new_payroll = 0,
-      existing_payroll = payroll
-    ) %>%
-    mutate(
-      payroll_total = existing_payroll + rehi_payroll
-    ) %>%
-    mutate(
-      uaal = aal - actuarial_assets,
-      funded_ratio = actuarial_assets / aal,
-      `ADEC Contribution Rates` = adec / payroll_total,
-      `Actual Contribution Rates (Statutory)` = emp_cont / payroll_total
-    )
-  date_min <- initial$valuation_date[1]
-  date_max <- date_min + years(input$n)
-  all_dates <- seq(date_min, date_max, by = "year")
-  new_df <- data.frame(list(valuation_date = all_dates))
-  merged_df <- merge(new_df, initial, all = T)
-  merged_df %>%
-    mutate(year = lag(year(valuation_date), default = first(year) - 1) + 1,
-           contribution_fy = year + 2) %>%
-    mutate(
-      payroll_total = payrollGrowth(., pgr = input$pgr),
-      payroll_rehi = payrollGrowth(., y = "rehi_payroll", pgr = input$pgr),
-      payroll_existing = payrollExistingGrowth(.)
-    ) %>%
-    mutate(payroll_new = payroll_total - payroll_rehi - payroll_existing) %>%
-    select(-c(payroll, rehi_payroll, new_payroll, existing_payroll))
+  all_data <- fundingData(dataset(), n = input$n, pgr = input$pgr)
 })
 
 output$plan <- renderUI({
