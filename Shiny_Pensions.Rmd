@@ -19,14 +19,14 @@ Sidebar {.sidebar}
 ======================================================
 
 ```{r sidebar}
-planList <- planList()
+pl <- planList()
 
 fluidRow(column(
   10,
   selectInput(
     "state",
     "Select a state:",
-    choices = levels(planList$state),
+    choices = levels(pl$state),
     selected = "Texas"
   )
 ))
@@ -45,13 +45,13 @@ h5(
 )
 
 plans <- reactive({
-  planList %>% 
+  pl %>% 
     subset(state == input$state) %>% 
     select(display_name)
 })
 
 dataset <- eventReactive(input$go, {
-  pullData(input$plan)
+  pullData(pl, input$plan)
 })
 
 selected_data <- eventReactive(input$go, {

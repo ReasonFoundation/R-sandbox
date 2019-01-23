@@ -25,7 +25,7 @@
 # Usage: installRequiredPackages()
 
 installRequiredPackages <- function() {
-  packages_needed <- c('tidyverse', 'RPostgres', 'ggplot2', 'httr', 'ggthemes', 'extrafont', 'scales', 'DT', 'lubridate', 'janitor')
+  packages_needed <- c('tidyverse', 'RPostgres', 'ggplot2', 'httr', 'ggthemes', 'extrafont', 'scales', 'DT', 'lubridate', 'janitor', 'config', 'here')
   installed <- installed.packages()
   sapply(packages_needed, function(p)
     if(!p %in% installed[,1]){
@@ -89,11 +89,12 @@ planList <- function() {
 
 ####################################################################
 # Description: This function pulls data for a selected plan from the Reason database.
-# Parameters: The one parameter is the plan's name as found in the planList() function.
-# Usage: example: allData <- pullData("Kansas Public Employees' Retirement System")
+# Parameters: pl is the variable containing the plan list returned by the planList() function.
+#             The second parameter is the plan's name as found in the plan list.
+# Usage: example: allData <- pullData(pl, "Kansas Public Employees' Retirement System")
 
 pullData <-
-  function(plan_name = "Texas Employees Retirement System") {
+  function(pl, plan_name = "Texas Employees Retirement System") {
     require(RPostgres)
     require(httr)
     require(tidyverse)
@@ -133,9 +134,9 @@ pullData <-
   where cast(plan_annual_attribute.year as integer) >= 1980 and
   data_source_id <> 1 and
   plan_id = $1"
-    pl <- planList()
-    # calls planList to get the plan id for the chosen plan
+
     plan_id <- pl$id[pl$display_name == plan_name]
+    
     result <- dbSendQuery(con, query)
     dbBind(result, list(plan_id))
     all_data <- dbFetch(result) %>%

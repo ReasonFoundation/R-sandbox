@@ -109,7 +109,7 @@ plans <- reactive({
 })
 
 dataset <- eventReactive(input$go, {
-  pullData(input$plan)
+  pullData(pl = pl, plan_name = input$plan)
 })
 
 selected_data <- eventReactive(input$go, {
