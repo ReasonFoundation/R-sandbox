@@ -62,7 +62,7 @@ fundingData <- function(wide_data,
   date_max <- date_min + years(n)
   all_dates <- seq(date_min, date_max, by = "year")
   new_df <- data.frame(list(valuation_date = all_dates))
-  merge(new_df, initial, all = T) %>%
+  left_join(new_df, initial) %>%
     mutate(
       year = lag(year(valuation_date), default = first(year) - 1) + 1, 
       contribution_fy = year + 2
