@@ -1,0 +1,8 @@
+default:
+  datawarehouse:
+    scheme: 'postgres' 
+    hostname: 'ec2-54-235-177-45.compute-1.amazonaws.com'
+    path: 'd47an5cjnv5mjb'
+    username: 'viliygpvlizwel'
+    password: '5c26e3ddd0b2682b5c71a4230547677007d7f9fcfe1ed1c29ee45d6375a7475d'  
+    port: 5432
