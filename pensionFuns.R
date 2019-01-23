@@ -49,21 +49,19 @@ planList <- function() {
   require(httr)
   require(tidyverse)
   require(janitor)
+  require(config)
 
-  # The folliwing url is provided by Heroku
-  url <-
-    "postgres://viliygpvlizwel:5c26e3ddd0b2682b5c71a4230547677007d7f9fcfe1ed1c29ee45d6375a7475d@ec2-54-235-177-45.compute-1.amazonaws.com:5432/d47an5cjnv5mjb"
-  # To parse the url into usable sections use parse_url
-  pg <- parse_url(url)
-  # create a connection from the url using the parsed pieces
-  con <- dbConnect(Postgres(),
-    dbname = trimws(pg$path),
-    host = pg$hostname,
-    port = pg$port,
-    user = pg$username,
-    password = pg$password,
+  dw <- config::get("datawarehouse")
+  con <- dbConnect(
+    Postgres(),
+    dbname = trimws(dw$path),
+    host = dw$hostname,
+    port = dw$port,
+    user = dw$username,
+    password = dw$password,
     sslmode = "require"
   )
+  
   # define the query to retrieve the plan list
   q1 <- "select plan.id,
   display_name,
@@ -100,24 +98,20 @@ pullData <-
     require(httr)
     require(tidyverse)
     require(janitor)
+    require(config)
 
-    # The folliwing url is provided by Heroku
-    url <-
-      "postgres://viliygpvlizwel:5c26e3ddd0b2682b5c71a4230547677007d7f9fcfe1ed1c29ee45d6375a7475d@ec2-54-235-177-45.compute-1.amazonaws.com:5432/d47an5cjnv5mjb"
-    # To parse the url into usable sections use parse_url
-    pg <- parse_url(url)
-    # create a connection from the url using the parsed pieces
+    dw <- config::get("datawarehouse")
     con <- dbConnect(
       Postgres(),
-      dbname = trimws(pg$path),
-      host = pg$hostname,
-      port = pg$port,
-      user = pg$username,
-      password = pg$password,
+      dbname = trimws(dw$path),
+      host = dw$hostname,
+      port = dw$port,
+      user = dw$username,
+      password = dw$password,
       sslmode = "require"
     )
     # define the query to retrieve the plan data
-    q2 <- "select plan_annual_attribute.year,
+    query <- "select plan_annual_attribute.year,
   plan.id,
   plan.display_name,
   state.name as state,
@@ -138,18 +132,15 @@ pullData <-
   on plan_attribute.data_source_id = data_source.id
   where cast(plan_annual_attribute.year as integer) >= 1980 and
   data_source_id <> 1 and
-  plan_id = "
+  plan_id = $1"
     pl <- planList()
     # calls planList to get the plan id for the chosen plan
     plan_id <- pl$id[pl$display_name == plan_name]
-    # gets the matching plan id. This avoids problems with quotations in plan names.
-    q3 <-
-      paste0(q2, plan_id, " order by year, data_source_id, plan_attribute_id")
-    # inserts the plan id into the middle of the query.
-    res <- dbSendQuery(con, q3)
-    all_data <- dbFetch(res) %>% 
+    result <- dbSendQuery(con, query)
+    dbBind(result, list(plan_id))
+    all_data <- dbFetch(result) %>%
       clean_names()
-    dbClearResult(res)
+    dbClearResult(result)
     dbDisconnect(con)
     all_data %>%
       group_by_at(vars(-attribute_value)) %>%  # group by everything other than the value column. 
