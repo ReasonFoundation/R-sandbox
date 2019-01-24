@@ -15,29 +15,20 @@
 #                   .ADECCol = 'Employer Annual Required Contribution',
 #                   .empContCol = 'Employer Contributions',
 #                   .payrollCol = 'Covered Payroll')
-<<<<<<< HEAD
 
 ########### add total_pension_liabilty, payroll_growth_rate variables, drop final year if NAs
-=======
->>>>>>> 4af61f55a2e9b1cf8634d3ffe510fdaf69913d2f
 
 
 fundingData <- function(wide_data,
                         .date_var = "actuarial_valuation_date_for_gasb_assumptions",
-<<<<<<< HEAD
                         .aal_var = "total_pension_liability",
                         #.aal_var = "actuarial_accrued_liabilities_under_gasb_standards",
-=======
                         .aal_var = "actuarial_accrued_liabilities_under_gasb_standards",
->>>>>>> 4af61f55a2e9b1cf8634d3ffe510fdaf69913d2f
                         .asset_var = "actuarial_assets_under_gasb_standards",
                         .adec_var = "employer_annual_required_contribution",
                         .emp_cont_var = "employer_contributions",
                         .payroll_var = "covered_payroll",
-<<<<<<< HEAD
                         .pgr_var = "payroll_growth_rate",
-=======
->>>>>>> 4af61f55a2e9b1cf8634d3ffe510fdaf69913d2f
                         n = 35,
                         pgr = 2.75) {
   require(tidyverse)
@@ -50,10 +41,7 @@ fundingData <- function(wide_data,
   adec_var <- sym(.adec_var)
   emp_cont_var <- sym(.emp_cont_var)
   payroll_var <- sym(.payroll_var)
-<<<<<<< HEAD
   pgr_var <- sym(.pgr_var)
-=======
->>>>>>> 4af61f55a2e9b1cf8634d3ffe510fdaf69913d2f
   
   initial <- wide_data %>%
     mutate(
@@ -65,11 +53,8 @@ fundingData <- function(wide_data,
       ) %>%
     select(
       year,
-<<<<<<< HEAD
       valuation_date,
-=======
       valuation_date = !!date_var,
->>>>>>> 4af61f55a2e9b1cf8634d3ffe510fdaf69913d2f
       actuarial_assets = !!asset_var,
       aal = !!aal_var,
       adec = !!adec_var,
