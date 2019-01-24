@@ -169,25 +169,29 @@ loadData <- function(filename) {
 # Description: This function selects the data used in the 'mountain of debt' graph
 # Parameters:
 #     wideData = a datasource in wide format
-#     yearCol = the name of the column conatining the year
-#     aalcol = the name of the column containing the AAL, default is Reason db column name
-#     assetcol = the name of the column containing the Actuarial Assets, default to Reason db name.
+#     .year_var = the name of the column conatining the year
+#     .aal_var = the name of the column containing the AAL, default is Reason db column name
+#     .asset_var = the name of the column containing the Actuarial Assets, default to Reason db name.
 #     base: Does the plan report their numbers by the thousand dollar or by the dollar?
 #           default is 1000, change to 1 for plans that report by the dollar
 # Usage: data <- modData(allWide,
-#                   yearCol = 'Fiscal Year End',
-#                   aalCol = 'Actuarial Accrued Liability',
-#                   assetCol = 'Actuarial Value of Assets',
+#                   .year_var = 'Fiscal Year End',
+#                   .aal_var = 'Actuarial Accrued Liability',
+#                   .asset_var = 'Actuarial Value of Assets',
 #                   base = 1)
 
 modData <- function(wide_data,
-                    year_col = "year",
-                    aal_col = "actuarial_accrued_liabilities_under_gasb_standards",
-                    asset_col = "actuarial_assets_under_gasb_standards",
+                    .year_var = "year",
+                    .aal_var = "actuarial_accrued_liabilities_under_gasb_standards",
+                    .asset_var = "actuarial_assets_under_gasb_standards",
                     base = 1000) {
   require(tidyverse)
+  year_var <- sym(.year_var)
+  aal_var <- sym(.aal_var)
+  asset_var <- sym(.asset_var)
+  
   wide_data %>%
-    select(year = year_col, actuarial_assets = asset_col, aal = aal_col) %>%
+    select(year = !!year_var, actuarial_assets = !!asset_var, aal = !!aal_var) %>%
     mutate(
       uaal = as.numeric(aal) - as.numeric(actuarial_assets),
       # create a UAAL column as AAL-Actuarial Assets
