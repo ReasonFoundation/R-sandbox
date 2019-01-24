@@ -15,15 +15,29 @@
 #                   .ADECCol = 'Employer Annual Required Contribution',
 #                   .empContCol = 'Employer Contributions',
 #                   .payrollCol = 'Covered Payroll')
+<<<<<<< HEAD
+
+########### add total_pension_liabilty, payroll_growth_rate variables, drop final year if NAs
+=======
+>>>>>>> 4af61f55a2e9b1cf8634d3ffe510fdaf69913d2f
 
 
 fundingData <- function(wide_data,
                         .date_var = "actuarial_valuation_date_for_gasb_assumptions",
+<<<<<<< HEAD
+                        .aal_var = "total_pension_liability",
+                        #.aal_var = "actuarial_accrued_liabilities_under_gasb_standards",
+=======
                         .aal_var = "actuarial_accrued_liabilities_under_gasb_standards",
+>>>>>>> 4af61f55a2e9b1cf8634d3ffe510fdaf69913d2f
                         .asset_var = "actuarial_assets_under_gasb_standards",
                         .adec_var = "employer_annual_required_contribution",
                         .emp_cont_var = "employer_contributions",
                         .payroll_var = "covered_payroll",
+<<<<<<< HEAD
+                        .pgr_var = "payroll_growth_rate",
+=======
+>>>>>>> 4af61f55a2e9b1cf8634d3ffe510fdaf69913d2f
                         n = 35,
                         pgr = 2.75) {
   require(tidyverse)
@@ -36,11 +50,26 @@ fundingData <- function(wide_data,
   adec_var <- sym(.adec_var)
   emp_cont_var <- sym(.emp_cont_var)
   payroll_var <- sym(.payroll_var)
+<<<<<<< HEAD
+  pgr_var <- sym(.pgr_var)
+=======
+>>>>>>> 4af61f55a2e9b1cf8634d3ffe510fdaf69913d2f
   
   initial <- wide_data %>%
+    mutate(
+      date = !!date_var
+    ) %>%
+    mutate(
+      year = year(excel_numeric_to_date(as.numeric(date))),
+      valuation_date = excel_numeric_to_date(as.numeric(date))
+      ) %>%
     select(
       year,
+<<<<<<< HEAD
+      valuation_date,
+=======
       valuation_date = !!date_var,
+>>>>>>> 4af61f55a2e9b1cf8634d3ffe510fdaf69913d2f
       actuarial_assets = !!asset_var,
       aal = !!aal_var,
       adec = !!adec_var,
@@ -48,22 +77,16 @@ fundingData <- function(wide_data,
       existing_payroll = !!payroll_var
     ) %>%
     mutate(
-      year = year(excel_numeric_to_date(as.numeric(valuation_date))),
-      valuation_date = excel_numeric_to_date(as.numeric(valuation_date)),
       uaal = as.numeric(aal) - as.numeric(actuarial_assets),
       funded_ratio = as.numeric(actuarial_assets) / as.numeric(aal),
       adec_contribution_rates = as.numeric(adec) / as.numeric(existing_payroll),
       actual_contribution_rates = as.numeric(emp_cont) / as.numeric(existing_payroll)
-    ) %>%
-    last() %>%
+    ) %>% 
+    top_n(1, year) %>%
     mutate(
       rehi_payroll = 104073,
       new_payroll = 0,
-      payroll_total = existing_payroll + rehi_payroll,
-      uaal = aal - actuarial_assets,
-      funded_ratio = actuarial_assets / aal,
-      adec_contribution_rate = adec / payroll_total,
-      actual_contribution_rate = emp_cont / payroll_total
+      payroll_total = existing_payroll + rehi_payroll
     ) 
   date_min <- initial$valuation_date[1]
   date_max <- date_min + years(n)
@@ -142,7 +165,7 @@ dataTableFM <- function(data) {
       "Actuarial Accrued Liabilities" = aal,
       "Unfunded Actuarial Accrued Liabilities" = uaal,
       "Funded Ratio" = funded_ratio,
-      "Actuaially Determined Employer Contribution" = adec,
+      "Actuarially Determined Employer Contribution" = adec,
       "Employer Contribution" = emp_cont
     )
   datatable(
@@ -158,6 +181,6 @@ dataTableFM <- function(data) {
       buttons = c("copy", "csv", "excel", "pdf", "print")
     )
   ) %>%
-    formatCurrency(c(3:5, 7:8, 11)) %>%
-    formatPercentage(6, 9:10)
+    formatCurrency(c(3:7, 11, 13:15)) %>%
+    formatPercentage(8:10)
 }
