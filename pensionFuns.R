@@ -169,25 +169,29 @@ loadData <- function(filename) {
 # Description: This function selects the data used in the 'mountain of debt' graph
 # Parameters:
 #     wideData = a datasource in wide format
-#     yearCol = the name of the column conatining the year
-#     aalcol = the name of the column containing the AAL, default is Reason db column name
-#     assetcol = the name of the column containing the Actuarial Assets, default to Reason db name.
+#     .year_var = the name of the column conatining the year
+#     .aal_var = the name of the column containing the AAL, default is Reason db column name
+#     .asset_var = the name of the column containing the Actuarial Assets, default to Reason db name.
 #     base: Does the plan report their numbers by the thousand dollar or by the dollar?
 #           default is 1000, change to 1 for plans that report by the dollar
 # Usage: data <- modData(allWide,
-#                   yearCol = 'Fiscal Year End',
-#                   aalCol = 'Actuarial Accrued Liability',
-#                   assetCol = 'Actuarial Value of Assets',
+#                   .year_var = 'Fiscal Year End',
+#                   .aal_var = 'Actuarial Accrued Liability',
+#                   .asset_var = 'Actuarial Value of Assets',
 #                   base = 1)
 
 modData <- function(wide_data,
-                    year_col = "year",
-                    aal_col = "actuarial_accrued_liabilities_under_gasb_standards",
-                    asset_col = "actuarial_assets_under_gasb_standards",
+                    .year_var = "year",
+                    .aal_var = "actuarial_accrued_liabilities_under_gasb_standards",
+                    .asset_var = "actuarial_assets_under_gasb_standards",
                     base = 1000) {
   require(tidyverse)
+  year_var <- sym(.year_var)
+  aal_var <- sym(.aal_var)
+  asset_var <- sym(.asset_var)
+  
   wide_data %>%
-    select(year = year_col, actuarial_assets = asset_col, aal = aal_col) %>%
+    select(year = !!year_var, actuarial_assets = !!asset_var, aal = !!aal_var) %>%
     mutate(
       uaal = as.numeric(aal) - as.numeric(actuarial_assets),
       # create a UAAL column as AAL-Actuarial Assets
@@ -420,45 +424,55 @@ glGraph <-
 # Description: This function selects the data used in several graphs
 # Parameters:
 #     wideData = a datasource in wide format
-#     dateCol = column name for valuation date. Default: 'Actuarial Valuation Date For GASB Assumptions',
-#     aalCol = column name AAL. Default: 'Actuarial Accrued Liabilities Under GASB Standards',
-#     assetCol = column name for Actuarial Assets. Default: 'Actuarial Assets under GASB standards',
-#     ADECCol = column name for ADEC. Default: 'Employer Annual Required Contribution',
-#     empContCol = column name for employer contributions. Default: 'Employer Contributions',
-#     payrollCol = column name for payroll. Default: 'Covered Payroll'
+#     .date_var = column name for valuation date. Default: 'Actuarial Valuation Date For GASB Assumptions',
+#     .aal_var = column name AAL. Default: 'Actuarial Accrued Liabilities Under GASB Standards',
+#     .asset_var = column name for Actuarial Assets. Default: 'Actuarial Assets under GASB standards',
+#     .adec_var = column name for ADEC. Default: 'Employer Annual Required Contribution',
+#     .emp_cont_var = column name for employer contributions. Default: 'Employer Contributions',
+#     .payroll_var = column name for payroll. Default: 'Covered Payroll'
 # Usage: data <- selected_Data(wideData,
-#                   dateCol = 'Actuarial Valuation Date For GASB Assumptions',
-#                   aalCol = 'Actuarial Accrued Liabilities Under GASB Standards',
-#                   assetCol = 'Actuarial Assets under GASB standards',
-#                   ADECCol = 'Employer Annual Required Contribution',
-#                   empContCol = 'Employer Contributions',
-#                   payrollCol = 'Covered Payroll')
+#                   date_var = 'Actuarial Valuation Date For GASB Assumptions',
+#                   aal_var = 'Actuarial Accrued Liabilities Under GASB Standards',
+#                   asset_var = 'Actuarial Assets under GASB standards',
+#                   adec_var = 'Employer Annual Required Contribution',
+#                   emp_cont_var = 'Employer Contributions',
+#                   payroll_var = 'Covered Payroll')
 
 
 selectedData <- function(wide_data,
-                          date_col = "actuarial_valuation_date_for_gasb_assumptions",
-                          aal_col = "actuarial_accrued_liabilities_under_gasb_standards",
-                          asset_col = "actuarial_assets_under_gasb_standards",
-                          adec_col = "employer_annual_required_contribution",
-                          emp_cont_col = "employer_contributions",
-                          payroll_col = "covered_payroll") {
+                          .date_var = "actuarial_valuation_date_for_gasb_assumptions",
+                          .aal_var = "actuarial_accrued_liabilities_under_gasb_standards",
+                          .asset_var = "actuarial_assets_under_gasb_standards",
+                          .adec_var = "employer_annual_required_contribution",
+                          .emp_cont_var = "employer_contributions",
+                          .payroll_var = "covered_payroll") {
   require(tidyverse)
   require(lubridate)
   require(janitor)
 
+  date_var <- sym(.date_var)
+  aal_var <- sym(.aal_var)
+  asset_var <- sym(.asset_var)
+  adec_var <- sym(.adec_var)
+  emp_cont_var <- sym(.emp_cont_var)
+  payroll_var <- sym(.payroll_var)
+  
   wide_data %>%
     mutate(
-      year = year(excel_numeric_to_date(as.numeric(actuarial_valuation_date_for_gasb_assumptions))),
-      valuation_date = excel_numeric_to_date(as.numeric(actuarial_valuation_date_for_gasb_assumptions))
+      date = !!date_var
+    ) %>% 
+    mutate(
+      year = year(excel_numeric_to_date(as.numeric(date))),
+      valuation_date = excel_numeric_to_date(as.numeric(date))
       ) %>%
     select(
       year,
       valuation_date,
-      actuarial_assets = asset_col,
-      aal = aal_col,
-      adec = adec_col,
-      emp_cont = emp_cont_col,
-      payroll = payroll_col
+      actuarial_assets = !!asset_var,
+      aal = !!aal_var,
+      adec = !!adec_var,
+      emp_cont = !!emp_cont_var,
+      payroll = !!payroll_var
     ) %>%
     mutate(
       uaal = as.numeric(aal) - as.numeric(actuarial_assets),
